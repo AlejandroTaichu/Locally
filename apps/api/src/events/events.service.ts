@@ -1,9 +1,11 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { haversineDistanceKm } from './geo.util.js';
 import type { CreateEventDto, ListEventsQueryDto } from './events.schemas.js';
 
 const DEFAULT_RADIUS_KM = 15;
+const MAX_EVENTS_PER_ORGANIZER_PER_DAY = 5;
+const SPAM_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const eventWithOrganizer = {
   include: { organizer: { select: { id: true, displayName: true } } },
@@ -20,8 +22,15 @@ export class EventsService {
         select: { isPremium: true },
       });
       if (!organizer.isPremium) {
-        throw new ForbiddenException('Only premium organizers can create premium-only events');
+        throw new ForbiddenException('Sadece premium organizatörler premium-only etkinlik oluşturabilir');
       }
+    }
+
+    const recentEventCount = await this.prisma.event.count({
+      where: { organizerId, createdAt: { gte: new Date(Date.now() - SPAM_WINDOW_MS) } },
+    });
+    if (recentEventCount >= MAX_EVENTS_PER_ORGANIZER_PER_DAY) {
+      throw new HttpException('Çok fazla etkinlik oluşturdun, lütfen daha sonra tekrar dene', HttpStatus.TOO_MANY_REQUESTS);
     }
 
     return this.prisma.event.create({

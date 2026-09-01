@@ -9,6 +9,7 @@ import OtpVerifyScreen from '../screens/auth/OtpVerifyScreen';
 import EventListScreen from '../screens/events/EventListScreen';
 import EventDetailScreen from '../screens/events/EventDetailScreen';
 import CreateEventScreen from '../screens/events/CreateEventScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
@@ -29,6 +30,7 @@ function AppNavigator() {
       <AppStack.Screen name="EventList" component={EventListScreen} options={{ title: 'Etkinlikler' }} />
       <AppStack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Etkinlik' }} />
       <AppStack.Screen name="CreateEvent" component={CreateEventScreen} options={{ title: 'Etkinlik Oluştur' }} />
+      <AppStack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
     </AppStack.Navigator>
   );
 }

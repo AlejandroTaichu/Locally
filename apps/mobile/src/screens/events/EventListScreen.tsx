@@ -6,7 +6,6 @@ import type { AppStackParamList } from '../../navigation/types';
 import { useAuth } from '../../auth/AuthContext';
 import { listEvents } from '../../api/events';
 import type { Event } from '../../api/events';
-import { updateMe } from '../../api/users';
 import { getCurrentLocation } from '../../location/current-location';
 import Button from '../../components/Button';
 import { colors, radii, spacing, typography } from '../../theme';
@@ -18,11 +17,10 @@ function formatStartsAt(iso: string): string {
 }
 
 export default function EventListScreen({ navigation }: Props) {
-  const { user, token, logout, refreshUser } = useAuth();
+  const { user, token } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isTogglingPremium, setIsTogglingPremium] = useState(false);
 
   const loadEvents = useCallback(async () => {
     if (!token) return;
@@ -45,39 +43,14 @@ export default function EventListScreen({ navigation }: Props) {
     }, [loadEvents]),
   );
 
-  async function handleTogglePremium() {
-    if (!token || !user) return;
-    setIsTogglingPremium(true);
-    try {
-      await updateMe({ isPremium: !user.isPremium }, token);
-      await refreshUser();
-      loadEvents();
-    } finally {
-      setIsTogglingPremium(false);
-    }
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         {user ? <Text style={styles.greeting}>Merhaba, {user.displayName}</Text> : null}
-        <Pressable onPress={() => logout()}>
-          <Text style={styles.logout}>Çıkış Yap</Text>
+        <Pressable testID="profile-link" onPress={() => navigation.navigate('Profile')}>
+          <Text style={styles.profileLink}>Profil</Text>
         </Pressable>
       </View>
-
-      {user ? (
-        <Pressable
-          testID="premium-toggle"
-          onPress={handleTogglePremium}
-          disabled={isTogglingPremium}
-          style={[styles.premiumBadge, user.isPremium && styles.premiumBadgeActive]}
-        >
-          <Text style={[styles.premiumBadgeText, user.isPremium && styles.premiumBadgeTextActive]}>
-            {user.isPremium ? '⭐ Premium (kapatmak için dokun)' : 'Ücretsiz (premium için dokun)'}
-          </Text>
-        </Pressable>
-      ) : null}
 
       {isLoading ? (
         <ActivityIndicator style={styles.stateBlock} color={colors.primary} />
@@ -122,29 +95,10 @@ const styles = StyleSheet.create({
     ...typography.headlineSm,
     color: colors.textPrimary,
   },
-  logout: {
+  profileLink: {
     ...typography.bodyMd,
-    color: colors.error,
-    fontWeight: '600',
-  },
-  premiumBadge: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.chip,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  premiumBadgeActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  premiumBadgeText: {
-    ...typography.labelCaps,
-    color: colors.textSecondary,
-  },
-  premiumBadgeTextActive: {
-    color: colors.onPrimary,
+    color: colors.primaryDark,
+    fontWeight: '700',
   },
   stateBlock: {
     flex: 1,

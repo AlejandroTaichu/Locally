@@ -10,4 +10,5 @@ export type AppStackParamList = {
   EventList: undefined;
   EventDetail: { eventId: string };
   CreateEvent: undefined;
+  Profile: undefined;
 };
