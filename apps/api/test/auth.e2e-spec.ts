@@ -1,0 +1,106 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { AppModule } from '../src/app.module.js';
+
+function uniqueUser() {
+  const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  return {
+    displayName: 'Test User',
+    email: `test-${suffix}@example.com`,
+    phone: `+9055500${suffix.slice(-5)}`,
+  };
+}
+
+async function readOtpCode(app: INestApplication<App>, channel: 'email' | 'phone', target: string) {
+  const response = await request(app.getHttpServer())
+    .get('/auth/otp/debug')
+    .query({ channel, target })
+    .expect(200);
+  return response.body.code as string;
+}
+
+describe('Auth (e2e)', () => {
+  let app: INestApplication<App>;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('registers, verifies via OTP, and issues a usable token', async () => {
+    const candidate = uniqueUser();
+
+    const registerRes = await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+    expect(registerRes.body.userId).toBeDefined();
+
+    const code = await readOtpCode(app, 'email', candidate.email);
+
+    const verifyRes = await request(app.getHttpServer())
+      .post('/auth/otp/verify')
+      .send({ channel: 'email', target: candidate.email, code })
+      .expect(201);
+
+    expect(verifyRes.body.accessToken).toBeDefined();
+    expect(verifyRes.body.user.email).toBe(candidate.email);
+    expect(verifyRes.body.user.emailVerifiedAt).not.toBeNull();
+
+    await request(app.getHttpServer())
+      .get('/users/me')
+      .set('Authorization', `Bearer ${verifyRes.body.accessToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe(verifyRes.body.user.id);
+      });
+  });
+
+  it('rejects duplicate registration with the same email/phone', async () => {
+    const candidate = uniqueUser();
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(409);
+  });
+
+  it('rejects verification with a wrong code', async () => {
+    const candidate = uniqueUser();
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/otp/verify')
+      .send({ channel: 'email', target: candidate.email, code: '000000' })
+      .expect(400);
+  });
+
+  it('rejects unauthenticated access to /users/me', async () => {
+    await request(app.getHttpServer()).get('/users/me').expect(401);
+  });
+
+  it('supports login for an existing user via otp/request + otp/verify', async () => {
+    const candidate = uniqueUser();
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+    const firstCode = await readOtpCode(app, 'email', candidate.email);
+    await request(app.getHttpServer())
+      .post('/auth/otp/verify')
+      .send({ channel: 'email', target: candidate.email, code: firstCode })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/otp/request')
+      .send({ channel: 'email', target: candidate.email })
+      .expect(201);
+    const secondCode = await readOtpCode(app, 'email', candidate.email);
+
+    await request(app.getHttpServer())
+      .post('/auth/otp/verify')
+      .send({ channel: 'email', target: candidate.email, code: secondCode })
+      .expect(201);
+  });
+});

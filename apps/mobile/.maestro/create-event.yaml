@@ -1,0 +1,18 @@
+appId: com.join.app
+---
+- runFlow: register-and-login.yaml
+- tapOn: "Etkinlik Oluştur"
+- tapOn: "Başlık (örn. 2'ye 2 Basketbol)"
+- inputText: "Maestro E2E Basketbol"
+- tapOn:
+    id: "category-chip-Basketbol"
+- tapOn: "Konum açıklaması (örn. Moda Sahili Basketbol Sahası)"
+- inputText: "Moda Sahili Basketbol Sahası"
+- tapOn:
+    id: "use-current-location-button"
+- assertVisible: "Konum eklendi ✓"
+- tapOn:
+    id: "join-type-instant-button"
+- tapOn:
+    id: "create-event-submit-button"
+- assertVisible: "Maestro E2E Basketbol"

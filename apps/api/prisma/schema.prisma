@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// Data model source: Katıl-Vault/02-Engineering/Veri-Modeli.md
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JoinType {
+  instant
+  approval
+}
+
+enum VisibilityScope {
+  local
+  global
+}
+
+enum ParticipationStatus {
+  pending
+  approved
+  rejected
+  joined
+}
+
+enum OtpChannel {
+  email
+  phone
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  emailVerifiedAt DateTime?
+  phone           String    @unique
+  phoneVerifiedAt DateTime?
+  displayName     String
+  isPremium       Boolean   @default(false)
+  homeLocationLat Float?
+  homeLocationLng Float?
+  createdAt       DateTime  @default(now())
+
+  organizedEvents Event[]         @relation("EventOrganizer")
+  participations  Participation[]
+}
+
+model Event {
+  id                  String          @id @default(uuid())
+  organizer           User            @relation("EventOrganizer", fields: [organizerId], references: [id])
+  organizerId         String
+  title               String
+  category            String
+  locationLat         Float
+  locationLng         Float
+  locationLabel       String
+  startsAt            DateTime
+  capacity            Int?
+  joinType            JoinType
+  premiumOnlyMatching Boolean         @default(false)
+  visibilityScope     VisibilityScope @default(local)
+  createdAt           DateTime        @default(now())
+
+  participations Participation[]
+
+  @@index([startsAt])
+  @@index([organizerId])
+}
+
+model Participation {
+  id          String              @id @default(uuid())
+  event       Event               @relation(fields: [eventId], references: [id])
+  eventId     String
+  user        User                @relation(fields: [userId], references: [id])
+  userId      String
+  status      ParticipationStatus
+  requestedAt DateTime            @default(now())
+  decidedAt   DateTime?
+
+  @@unique([eventId, userId])
+}
+
+model OtpCode {
+  id         String     @id @default(uuid())
+  channel    OtpChannel
+  target     String
+  code       String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([target, channel])
+}

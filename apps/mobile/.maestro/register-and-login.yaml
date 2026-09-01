@@ -1,0 +1,26 @@
+appId: com.join.app
+---
+- clearKeychain
+- launchApp:
+    clearState: true
+    permissions:
+      location: inuse
+- runScript: scripts/generate-test-user.js
+- tapOn: "Kayıt ol"
+- tapOn: "Ad Soyad"
+- inputText: "${output.displayName}"
+- tapOn: "E-posta"
+- inputText: "${output.email}"
+- tapOn: "Telefon (+90...)"
+- inputText: "${output.phone}"
+- tapOn: "Hesap Oluştur"
+- tapOn:
+    id: "register-submit-button"
+- assertVisible: "Doğrulama Kodu"
+- runScript: scripts/fetch-otp.js
+- tapOn: "123456"
+- inputText: "${output.otpCode}"
+- tapOn: "Doğrulama Kodu"
+- tapOn:
+    id: "otp-verify-button"
+- assertVisible: "Etkinlik Oluştur"

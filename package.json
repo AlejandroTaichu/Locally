@@ -1,0 +1,9 @@
+{
+  "name": "join-app",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "api:dev": "pnpm --filter api start:dev",
+    "mobile:start": "pnpm --filter mobile start"
+  }
+}
