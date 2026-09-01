@@ -11,6 +11,7 @@ export const createEventSchema = z.object({
   startsAt: z.coerce.date().refine((date) => date.getTime() > Date.now(), 'startsAt must be in the future'),
   capacity: z.number().int().positive().max(500).optional(),
   joinType: joinTypeSchema,
+  premiumOnlyMatching: z.boolean().optional().default(false),
 });
 export type CreateEventDto = z.infer<typeof createEventSchema>;
 

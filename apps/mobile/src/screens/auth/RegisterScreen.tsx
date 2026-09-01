@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Button, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { register } from '../../api/auth';
 import { ApiError } from '../../api/client';
+import Button from '../../components/Button';
+import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
@@ -37,10 +39,17 @@ export default function RegisterScreen({ navigation }: Props) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Text style={styles.title}>Hesap Oluştur</Text>
 
-      <TextInput style={styles.input} placeholder="Ad Soyad" value={displayName} onChangeText={setDisplayName} />
+      <TextInput
+        style={styles.input}
+        placeholder="Ad Soyad"
+        placeholderTextColor={colors.textMuted}
+        value={displayName}
+        onChangeText={setDisplayName}
+      />
       <TextInput
         style={styles.input}
         placeholder="E-posta"
+        placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -49,6 +58,7 @@ export default function RegisterScreen({ navigation }: Props) {
       <TextInput
         style={styles.input}
         placeholder="Telefon (+90...)"
+        placeholderTextColor={colors.textMuted}
         keyboardType="phone-pad"
         value={phone}
         onChangeText={setPhone}
@@ -61,6 +71,7 @@ export default function RegisterScreen({ navigation }: Props) {
         title={isSubmitting ? 'Gönderiliyor...' : 'Kayıt Ol'}
         onPress={handleSubmit}
         disabled={isSubmitting}
+        style={styles.submitButton}
       />
     </KeyboardAvoidingView>
   );
@@ -71,23 +82,31 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    padding: 24,
+    gap: spacing.xs,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 8,
+    ...typography.headlineMd,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.border,
+    borderRadius: radii.input,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    ...typography.bodyLg,
+  },
+  submitButton: {
+    width: '100%',
   },
   error: {
-    color: '#c0392b',
+    color: colors.error,
+    ...typography.bodyMd,
   },
 });

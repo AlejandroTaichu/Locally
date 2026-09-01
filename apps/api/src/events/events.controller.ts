@@ -17,8 +17,8 @@ export class EventsController {
   }
 
   @Get()
-  list(@Query(new ZodValidationPipe(listEventsQuerySchema)) query: ListEventsQueryDto) {
-    return this.eventsService.list(query);
+  list(@CurrentUserId() userId: string, @Query(new ZodValidationPipe(listEventsQuerySchema)) query: ListEventsQueryDto) {
+    return this.eventsService.list(userId, query);
   }
 
   @Get(':id')

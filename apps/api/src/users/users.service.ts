@@ -14,10 +14,13 @@ export class UsersService {
     return user;
   }
 
-  async updateDisplayName(id: string, dto: UpdateMeDto) {
+  async updateMe(id: string, dto: UpdateMeDto) {
     return this.prisma.user.update({
       where: { id },
-      data: { displayName: dto.displayName },
+      data: {
+        ...(dto.displayName !== undefined ? { displayName: dto.displayName } : {}),
+        ...(dto.isPremium !== undefined ? { isPremium: dto.isPremium } : {}),
+      },
     });
   }
 }

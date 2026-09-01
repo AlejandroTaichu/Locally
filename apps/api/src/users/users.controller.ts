@@ -18,6 +18,6 @@ export class UsersController {
 
   @Patch('me')
   updateMe(@CurrentUserId() userId: string, @Body(new ZodValidationPipe(updateMeSchema)) dto: UpdateMeDto) {
-    return this.usersService.updateDisplayName(userId, dto);
+    return this.usersService.updateMe(userId, dto);
   }
 }

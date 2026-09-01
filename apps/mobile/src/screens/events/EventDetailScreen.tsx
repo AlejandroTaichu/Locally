@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../navigation/types';
@@ -9,11 +9,19 @@ import type { Event } from '../../api/events';
 import { decideParticipation, listParticipations, requestParticipation } from '../../api/participations';
 import type { Participation } from '../../api/participations';
 import { ApiError } from '../../api/client';
+import Button from '../../components/Button';
+import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'EventDetail'>;
 
 function formatStartsAt(iso: string): string {
   return new Date(iso).toLocaleString('tr-TR', { dateStyle: 'full', timeStyle: 'short' });
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const initials = parts.length > 1 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : parts[0]?.slice(0, 2);
+  return (initials ?? '').toUpperCase();
 }
 
 const JOIN_TYPE_LABEL: Record<Event['joinType'], string> = {
@@ -87,7 +95,7 @@ export default function EventDetailScreen({ route }: Props) {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -107,42 +115,51 @@ export default function EventDetailScreen({ route }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.category}>{event.category.toUpperCase()}</Text>
       <Text style={styles.title}>{event.title}</Text>
-      <Text style={styles.meta}>{event.category}</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Konum</Text>
-        <Text style={styles.value}>{event.locationLabel}</Text>
+      <View style={styles.card}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Konum</Text>
+          <Text style={styles.infoValue}>{event.locationLabel}</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Zaman</Text>
+          <Text style={styles.infoValue}>{formatStartsAt(event.startsAt)}</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Katılım</Text>
+          <Text style={styles.infoValue}>
+            {JOIN_TYPE_LABEL[event.joinType]}
+            {event.capacity ? ` · ${confirmedParticipants.length}/${event.capacity}` : ''}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{getInitials(event.organizer.displayName)}</Text>
+        </View>
+        <View>
+          <Text style={styles.organizerLabel}>ORGANİZATÖR</Text>
+          <Text style={styles.organizerName}>{event.organizer.displayName}</Text>
+        </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>Zaman</Text>
-        <Text style={styles.value}>{formatStartsAt(event.startsAt)}</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Katılım</Text>
-        <Text style={styles.value}>
-          {JOIN_TYPE_LABEL[event.joinType]}
-          {event.capacity ? ` · ${confirmedParticipants.length}/${event.capacity}` : ''}
-        </Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Organizatör</Text>
-        <Text style={styles.value}>{event.organizer.displayName}</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Katılımcılar</Text>
+        <Text style={styles.sectionTitle}>Katılımcılar ({confirmedParticipants.length})</Text>
         {confirmedParticipants.length === 0 ? (
-          <Text style={styles.value}>Henüz katılımcı yok</Text>
+          <Text style={styles.mutedText}>Henüz katılımcı yok</Text>
         ) : (
-          confirmedParticipants.map((p) => (
-            <Text key={p.id} style={styles.value}>
-              {p.user.displayName}
-            </Text>
-          ))
+          <View style={styles.avatarRow}>
+            {confirmedParticipants.map((p) => (
+              <View key={p.id} style={styles.avatarSmall}>
+                <Text style={styles.avatarSmallText}>{getInitials(p.user.displayName)}</Text>
+              </View>
+            ))}
+          </View>
         )}
       </View>
 
@@ -157,32 +174,37 @@ export default function EventDetailScreen({ route }: Props) {
         />
       ) : null}
 
-      {!isOrganizer && myParticipation ? (
-        <Text style={styles.value}>{MY_STATUS_LABEL[myParticipation.status]}</Text>
-      ) : null}
+      {!isOrganizer && myParticipation ? <Text style={styles.statusText}>{MY_STATUS_LABEL[myParticipation.status]}</Text> : null}
 
       {isOrganizer && event.joinType === 'approval' ? (
         <View style={styles.section}>
-          <Text style={styles.label}>Bekleyen İstekler</Text>
+          <Text style={styles.sectionTitle}>Bekleyen İstekler</Text>
           {pendingParticipants.length === 0 ? (
-            <Text style={styles.value}>Bekleyen istek yok</Text>
+            <Text style={styles.mutedText}>Bekleyen istek yok</Text>
           ) : (
             pendingParticipants.map((p) => (
               <View key={p.id} style={styles.pendingRow}>
-                <Text style={styles.value}>{p.user.displayName}</Text>
-                <View style={styles.row}>
+                <View style={styles.pendingIdentity}>
+                  <View style={styles.avatarSmall}>
+                    <Text style={styles.avatarSmallText}>{getInitials(p.user.displayName)}</Text>
+                  </View>
+                  <Text style={styles.infoValue}>{p.user.displayName}</Text>
+                </View>
+                <View style={styles.pendingActions}>
+                  <Button
+                    testID={`reject-participation-${p.id}`}
+                    variant="outline"
+                    title={decidingId === p.id ? '...' : 'Reddet'}
+                    onPress={() => handleDecide(p.id, 'rejected')}
+                    disabled={decidingId !== null}
+                    style={styles.pendingButton}
+                  />
                   <Button
                     testID={`approve-participation-${p.id}`}
                     title={decidingId === p.id ? '...' : 'Onayla'}
                     onPress={() => handleDecide(p.id, 'approved')}
                     disabled={decidingId !== null}
-                  />
-                  <Button
-                    testID={`reject-participation-${p.id}`}
-                    title={decidingId === p.id ? '...' : 'Reddet'}
-                    color="#c0392b"
-                    onPress={() => handleDecide(p.id, 'rejected')}
-                    disabled={decidingId !== null}
+                    style={styles.pendingButton}
                   />
                 </View>
               </View>
@@ -196,42 +218,134 @@ export default function EventDetailScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    gap: 16,
+    padding: spacing.md,
+    gap: spacing.md,
+    backgroundColor: colors.background,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+  category: {
+    ...typography.labelCaps,
+    color: colors.onPrimary,
+    backgroundColor: colors.primary,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+    borderRadius: radii.chip,
+    overflow: 'hidden',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.headlineMd,
+    color: colors.textPrimary,
   },
-  meta: {
-    fontSize: 14,
-    color: '#666',
+  card: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.card,
+    padding: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  infoRow: {
+    gap: 2,
+    flex: 1,
+  },
+  infoLabel: {
+    ...typography.labelCaps,
+    color: colors.textMuted,
+  },
+  infoValue: {
+    ...typography.bodyLg,
+    color: colors.textPrimary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.avatar,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    ...typography.headlineSm,
+    color: colors.textPrimary,
+  },
+  organizerLabel: {
+    ...typography.labelCaps,
+    color: colors.textMuted,
+  },
+  organizerName: {
+    ...typography.headlineSm,
+    color: colors.textPrimary,
   },
   section: {
-    gap: 2,
+    gap: spacing.xs,
   },
-  label: {
-    fontSize: 12,
-    color: '#999',
-    textTransform: 'uppercase',
+  sectionTitle: {
+    ...typography.headlineSm,
+    color: colors.textPrimary,
   },
-  value: {
-    fontSize: 16,
+  mutedText: {
+    ...typography.bodyMd,
+    color: colors.textSecondary,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  avatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.avatar,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarSmallText: {
+    ...typography.bodyMd,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   error: {
-    color: '#c0392b',
+    color: colors.error,
+    ...typography.bodyMd,
   },
-  row: {
-    flexDirection: 'row',
-    gap: 8,
+  statusText: {
+    ...typography.bodyLg,
+    color: colors.primaryDark,
+    fontWeight: '700',
   },
   pendingRow: {
-    gap: 4,
-    marginTop: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.card,
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  pendingIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  pendingActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  pendingButton: {
+    flex: 1,
   },
 });

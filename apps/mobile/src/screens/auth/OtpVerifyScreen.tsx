@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Button, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { verifyOtp } from '../../api/auth';
 import { ApiError } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
+import Button from '../../components/Button';
+import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerify'>;
 
@@ -42,6 +44,7 @@ export default function OtpVerifyScreen({ route }: Props) {
       <TextInput
         style={styles.input}
         placeholder="123456"
+        placeholderTextColor={colors.textMuted}
         keyboardType="number-pad"
         maxLength={6}
         value={code}
@@ -55,6 +58,7 @@ export default function OtpVerifyScreen({ route }: Props) {
         title={isSubmitting ? 'Doğrulanıyor...' : 'Doğrula'}
         onPress={handleSubmit}
         disabled={isSubmitting}
+        style={styles.submitButton}
       />
     </KeyboardAvoidingView>
   );
@@ -65,31 +69,39 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    padding: 24,
+    gap: spacing.xs,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.headlineMd,
+    color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodyMd,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.border,
+    borderRadius: radii.input,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
     textAlign: 'center',
-    fontSize: 20,
-    letterSpacing: 4,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 6,
+    color: colors.textPrimary,
+  },
+  submitButton: {
+    width: '100%',
   },
   error: {
-    color: '#c0392b',
+    color: colors.error,
+    ...typography.bodyMd,
   },
 });

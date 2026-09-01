@@ -10,6 +10,7 @@ interface AuthContextValue {
   user: User | null;
   login: (result: AuthResult) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -55,6 +56,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await tokenStorage.clear();
         setToken(null);
         setUser(null);
+      },
+      refreshUser: async () => {
+        if (!token) return;
+        const me = await getMe(token);
+        setUser(me);
       },
     }),
     [isLoading, token, user],

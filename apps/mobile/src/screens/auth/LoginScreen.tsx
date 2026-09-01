@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { requestOtp } from '../../api/auth';
 import { ApiError } from '../../api/client';
+import Button from '../../components/Button';
+import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -44,6 +46,7 @@ export default function LoginScreen({ navigation }: Props) {
       <TextInput
         style={styles.input}
         placeholder="ornek@mail.com veya +90..."
+        placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         keyboardType="email-address"
         value={target}
@@ -52,10 +55,10 @@ export default function LoginScreen({ navigation }: Props) {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Button title={isSubmitting ? 'Gönderiliyor...' : 'Kod Gönder'} onPress={handleSubmit} disabled={isSubmitting} />
+      <Button title={isSubmitting ? 'Gönderiliyor...' : 'Kod Gönder'} onPress={handleSubmit} disabled={isSubmitting} style={styles.submitButton} />
 
       <View style={styles.footer}>
-        <Text>Hesabın yok mu? </Text>
+        <Text style={styles.footerText}>Hesabın yok mu? </Text>
         <Text style={styles.link} onPress={() => navigation.navigate('Register')}>
           Kayıt ol
         </Text>
@@ -69,35 +72,49 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    padding: 24,
+    gap: spacing.xs,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    ...typography.displayMobile,
+    color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    ...typography.bodyMd,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.border,
+    borderRadius: radii.input,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    ...typography.bodyLg,
+  },
+  submitButton: {
+    width: '100%',
+    marginTop: spacing.xs,
   },
   error: {
-    color: '#c0392b',
+    color: colors.error,
+    ...typography.bodyMd,
   },
   footer: {
     flexDirection: 'row',
-    marginTop: 16,
+    marginTop: spacing.md,
+  },
+  footerText: {
+    ...typography.bodyMd,
+    color: colors.textSecondary,
   },
   link: {
-    color: '#2563eb',
-    fontWeight: '600',
+    ...typography.bodyMd,
+    color: colors.primaryDark,
+    fontWeight: '700',
   },
 });
