@@ -62,9 +62,14 @@ export default function EventListScreen({ navigation }: Props) {
       <FadeSlideIn>
         <View style={styles.header}>
           {user ? <Text style={styles.greeting}>Merhaba, {user.displayName}</Text> : null}
-          <Pressable testID="profile-link" onPress={() => navigation.navigate('Profile')}>
-            <Text style={styles.profileLink}>Profil</Text>
-          </Pressable>
+          <View style={styles.headerLinks}>
+            <Pressable testID="map-explore-link" onPress={() => navigation.navigate('MapExplore')}>
+              <Text style={styles.profileLink}>Harita</Text>
+            </Pressable>
+            <Pressable testID="profile-link" onPress={() => navigation.navigate('Profile')}>
+              <Text style={styles.profileLink}>Profil</Text>
+            </Pressable>
+          </View>
         </View>
       </FadeSlideIn>
 
@@ -106,6 +111,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerLinks: {
+    flexDirection: 'row',
+    gap: spacing.md,
   },
   greeting: {
     ...typography.headlineSm,

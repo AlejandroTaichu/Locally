@@ -14,11 +14,10 @@ import Card from '../../components/Card';
 import Chip from '../../components/Chip';
 import Stepper from '../../components/Stepper';
 import LocationMapPicker from '../../components/LocationMapPicker';
+import { EVENT_CATEGORIES } from '../../constants/eventCategories';
 import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'CreateEvent'>;
-
-const CATEGORY_SUGGESTIONS = ['Koşu', 'Basketbol', 'Halısaha', 'Bisiklet', 'Masa Oyunu'];
 
 function combineDateAndTime(date: Date, time: Date): Date {
   const combined = new Date(date);
@@ -139,7 +138,7 @@ export default function CreateEventScreen({ navigation }: Props) {
           onChangeText={setCategory}
         />
         <View style={styles.chipRow}>
-          {CATEGORY_SUGGESTIONS.map((suggestion) => (
+          {EVENT_CATEGORIES.map((suggestion) => (
             <Chip
               key={suggestion}
               testID={`category-chip-${suggestion}`}

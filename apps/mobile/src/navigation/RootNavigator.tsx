@@ -11,6 +11,7 @@ import EventDetailScreen from '../screens/events/EventDetailScreen';
 import CreateEventScreen from '../screens/events/CreateEventScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
+import MapExploreScreen from '../screens/events/MapExploreScreen';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
@@ -35,6 +36,7 @@ function AppNavigator() {
       <AppStack.Screen name="EventList" component={EventListScreen} options={{ title: 'Etkinlikler' }} />
       <AppStack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Etkinlik' }} />
       <AppStack.Screen name="CreateEvent" component={CreateEventScreen} options={{ title: 'Etkinlik Oluştur' }} />
+      <AppStack.Screen name="MapExplore" component={MapExploreScreen} options={{ title: 'Haritada Keşfet' }} />
       <AppStack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
     </AppStack.Navigator>
   );
