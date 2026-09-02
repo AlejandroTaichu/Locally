@@ -37,6 +37,7 @@ export class EventsService {
       data: {
         organizerId,
         title: dto.title,
+        description: dto.description,
         category: dto.category,
         locationLat: dto.locationLat,
         locationLng: dto.locationLng,

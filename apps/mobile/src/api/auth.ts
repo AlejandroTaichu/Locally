@@ -10,6 +10,7 @@ export interface User {
   isPremium: boolean;
   emailVerifiedAt: string | null;
   phoneVerifiedAt: string | null;
+  onboardingCompletedAt: string | null;
 }
 
 export interface AuthResult {

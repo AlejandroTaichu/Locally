@@ -39,3 +39,25 @@ export const typography = {
   bodyMd: { fontSize: 15, fontWeight: '400' as const, lineHeight: 20 },
   labelCaps: { fontSize: 12, fontWeight: '600' as const, lineHeight: 16, letterSpacing: 0.5 },
 };
+
+export const shadows = {
+  card: {
+    boxShadow: '0px 2px 6px rgba(0,0,0,0.06)',
+  },
+};
+
+export const motion = {
+  duration: {
+    fast: 150,
+    base: 250,
+    slow: 400,
+  },
+  easing: {
+    standard: [0.4, 0.0, 0.2, 1] as const,
+    decelerate: [0.0, 0.0, 0.2, 1] as const,
+    accelerate: [0.4, 0.0, 1, 1] as const,
+  },
+  stagger: {
+    step: 60,
+  },
+};

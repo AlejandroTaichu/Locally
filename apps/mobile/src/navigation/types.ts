@@ -7,6 +7,7 @@ export type AuthStackParamList = {
 };
 
 export type AppStackParamList = {
+  Onboarding: undefined;
   EventList: undefined;
   EventDetail: { eventId: string };
   CreateEvent: undefined;

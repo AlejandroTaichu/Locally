@@ -10,6 +10,7 @@ export interface EventOrganizer {
 export interface Event {
   id: string;
   title: string;
+  description: string | null;
   category: string;
   locationLat: number;
   locationLng: number;
@@ -26,12 +27,13 @@ export interface Event {
 
 export interface CreateEventInput {
   title: string;
+  description?: string;
   category: string;
   locationLat: number;
   locationLng: number;
   locationLabel: string;
   startsAt: string;
-  capacity?: number;
+  capacity: number;
   joinType: JoinType;
 }
 

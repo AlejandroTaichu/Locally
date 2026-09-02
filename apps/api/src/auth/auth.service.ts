@@ -11,7 +11,10 @@ function normalizeTarget(channel: OtpChannel, target: string): string {
 
 export interface AuthResult {
   accessToken: string;
-  user: Pick<User, 'id' | 'displayName' | 'email' | 'phone' | 'isPremium' | 'emailVerifiedAt' | 'phoneVerifiedAt'>;
+  user: Pick<
+    User,
+    'id' | 'displayName' | 'email' | 'phone' | 'isPremium' | 'emailVerifiedAt' | 'phoneVerifiedAt' | 'onboardingCompletedAt'
+  >;
 }
 
 @Injectable()
@@ -96,6 +99,7 @@ export class AuthService {
         isPremium: refreshedUser.isPremium,
         emailVerifiedAt: refreshedUser.emailVerifiedAt,
         phoneVerifiedAt: refreshedUser.phoneVerifiedAt,
+        onboardingCompletedAt: refreshedUser.onboardingCompletedAt,
       },
     };
   }

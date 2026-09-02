@@ -20,6 +20,7 @@ export class UsersService {
       data: {
         ...(dto.displayName !== undefined ? { displayName: dto.displayName } : {}),
         ...(dto.isPremium !== undefined ? { isPremium: dto.isPremium } : {}),
+        ...(dto.onboardingCompleted !== undefined ? { onboardingCompletedAt: new Date() } : {}),
       },
     });
   }

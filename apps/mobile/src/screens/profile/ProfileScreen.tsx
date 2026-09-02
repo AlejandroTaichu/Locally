@@ -5,7 +5,8 @@ import type { AppStackParamList } from '../../navigation/types';
 import { useAuth } from '../../auth/AuthContext';
 import { updateMe } from '../../api/users';
 import Button from '../../components/Button';
-import { colors, radii, spacing, typography } from '../../theme';
+import Card from '../../components/Card';
+import { colors, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Profile'>;
 
@@ -30,7 +31,7 @@ export default function ProfileScreen({}: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
+      <Card style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.label}>Ad Soyad</Text>
           <Text style={styles.value}>{user.displayName}</Text>
@@ -45,7 +46,7 @@ export default function ProfileScreen({}: Props) {
           <Text style={styles.label}>Telefon</Text>
           <Text style={styles.value}>{user.phone}</Text>
         </View>
-      </View>
+      </Card>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Üyelik</Text>
@@ -75,10 +76,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.card,
     padding: spacing.sm,
     gap: spacing.xs,
   },

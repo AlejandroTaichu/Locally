@@ -10,6 +10,7 @@ import EventListScreen from '../screens/events/EventListScreen';
 import EventDetailScreen from '../screens/events/EventDetailScreen';
 import CreateEventScreen from '../screens/events/CreateEventScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
@@ -25,8 +26,12 @@ function AuthNavigator() {
 }
 
 function AppNavigator() {
+  const { user } = useAuth();
+  const needsOnboarding = user?.onboardingCompletedAt == null;
+
   return (
-    <AppStack.Navigator initialRouteName="EventList">
+    <AppStack.Navigator initialRouteName={needsOnboarding ? 'Onboarding' : 'EventList'}>
+      <AppStack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
       <AppStack.Screen name="EventList" component={EventListScreen} options={{ title: 'Etkinlikler' }} />
       <AppStack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Etkinlik' }} />
       <AppStack.Screen name="CreateEvent" component={CreateEventScreen} options={{ title: 'Etkinlik Oluştur' }} />

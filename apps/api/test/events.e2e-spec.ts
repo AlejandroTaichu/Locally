@@ -114,6 +114,7 @@ describe('Events (e2e)', () => {
         locationLng: MODA.lng,
         locationLabel: 'Moda Sahili',
         startsAt: futureIso(24),
+        capacity: 10,
         joinType: 'instant',
       })
       .expect(201);
@@ -128,6 +129,7 @@ describe('Events (e2e)', () => {
         locationLng: ANKARA.lng,
         locationLabel: 'Kizilay',
         startsAt: futureIso(24),
+        capacity: 10,
         joinType: 'instant',
       })
       .expect(201);
@@ -154,6 +156,7 @@ describe('Events (e2e)', () => {
         locationLng: MODA.lng,
         locationLabel: 'Moda',
         startsAt: futureIso(24),
+        capacity: 10,
         joinType: 'approval',
       })
       .expect(201);

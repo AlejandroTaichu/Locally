@@ -53,6 +53,10 @@ describe('Auth (e2e)', () => {
     expect(verifyRes.body.accessToken).toBeDefined();
     expect(verifyRes.body.user.email).toBe(candidate.email);
     expect(verifyRes.body.user.emailVerifiedAt).not.toBeNull();
+    // Guards against a specific regression: verifyOtp() returns a hand-picked
+    // Pick<User, ...> rather than the raw row, so newly added User fields must
+    // be added there explicitly or they silently come back as undefined.
+    expect(verifyRes.body.user).toHaveProperty('onboardingCompletedAt', null);
 
     await request(app.getHttpServer())
       .get('/users/me')

@@ -10,6 +10,7 @@ import { decideParticipation, listParticipations, requestParticipation } from '.
 import type { Participation } from '../../api/participations';
 import { ApiError } from '../../api/client';
 import Button from '../../components/Button';
+import Card from '../../components/Card';
 import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'EventDetail'>;
@@ -117,8 +118,9 @@ export default function EventDetailScreen({ route }: Props) {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.category}>{event.category.toUpperCase()}</Text>
       <Text style={styles.title}>{event.title}</Text>
+      {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
 
-      <View style={styles.card}>
+      <Card style={styles.infoCard}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Konum</Text>
           <Text style={styles.infoValue}>{event.locationLabel}</Text>
@@ -136,9 +138,9 @@ export default function EventDetailScreen({ route }: Props) {
             {event.capacity ? ` · ${confirmedParticipants.length}/${event.capacity}` : ''}
           </Text>
         </View>
-      </View>
+      </Card>
 
-      <View style={styles.card}>
+      <Card style={styles.organizerCard}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{getInitials(event.organizer.displayName)}</Text>
         </View>
@@ -146,7 +148,7 @@ export default function EventDetailScreen({ route }: Props) {
           <Text style={styles.organizerLabel}>ORGANİZATÖR</Text>
           <Text style={styles.organizerName}>{event.organizer.displayName}</Text>
         </View>
-      </View>
+      </Card>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Katılımcılar ({confirmedParticipants.length})</Text>
@@ -183,7 +185,7 @@ export default function EventDetailScreen({ route }: Props) {
             <Text style={styles.mutedText}>Bekleyen istek yok</Text>
           ) : (
             pendingParticipants.map((p) => (
-              <View key={p.id} style={styles.pendingRow}>
+              <Card key={p.id} style={styles.pendingRow}>
                 <View style={styles.pendingIdentity}>
                   <View style={styles.avatarSmall}>
                     <Text style={styles.avatarSmallText}>{getInitials(p.user.displayName)}</Text>
@@ -207,7 +209,7 @@ export default function EventDetailScreen({ route }: Props) {
                     style={styles.pendingButton}
                   />
                 </View>
-              </View>
+              </Card>
             ))
           )}
         </View>
@@ -242,19 +244,22 @@ const styles = StyleSheet.create({
     ...typography.headlineMd,
     color: colors.textPrimary,
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.card,
+  description: {
+    ...typography.bodyMd,
+    color: colors.textSecondary,
+  },
+  infoCard: {
     padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  organizerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    padding: spacing.sm,
   },
   infoRow: {
     gap: 2,
-    flex: 1,
   },
   infoLabel: {
     ...typography.labelCaps,
@@ -329,10 +334,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   pendingRow: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.card,
     padding: spacing.sm,
     gap: spacing.xs,
   },

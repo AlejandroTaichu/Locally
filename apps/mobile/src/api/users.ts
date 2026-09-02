@@ -8,6 +8,7 @@ export function getMe(token: string) {
 export interface UpdateMeInput {
   displayName?: string;
   isPremium?: boolean;
+  onboardingCompleted?: true;
 }
 
 export function updateMe(input: UpdateMeInput, token: string) {

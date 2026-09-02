@@ -35,16 +35,17 @@ enum OtpChannel {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  emailVerifiedAt DateTime?
-  phone           String    @unique
-  phoneVerifiedAt DateTime?
-  displayName     String
-  isPremium       Boolean   @default(false)
-  homeLocationLat Float?
-  homeLocationLng Float?
-  createdAt       DateTime  @default(now())
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  emailVerifiedAt       DateTime?
+  phone                 String    @unique
+  phoneVerifiedAt       DateTime?
+  onboardingCompletedAt DateTime?
+  displayName           String
+  isPremium             Boolean   @default(false)
+  homeLocationLat       Float?
+  homeLocationLng       Float?
+  createdAt             DateTime  @default(now())
 
   organizedEvents Event[]         @relation("EventOrganizer")
   participations  Participation[]
@@ -55,6 +56,7 @@ model Event {
   organizer           User            @relation("EventOrganizer", fields: [organizerId], references: [id])
   organizerId         String
   title               String
+  description         String?
   category            String
   locationLat         Float
   locationLng         Float
