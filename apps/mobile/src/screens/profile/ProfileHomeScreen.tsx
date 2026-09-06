@@ -6,7 +6,8 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList, AppTabParamList } from '../../navigation/types';
 import { useAuth } from '../../auth/AuthContext';
-import { startTrial } from '../../api/users';
+import { deleteMe, startTrial } from '../../api/users';
+import { ApiError } from '../../api/client';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import SettingsRow from '../../components/SettingsRow';
@@ -24,6 +25,9 @@ export default function ProfileHomeScreen({ navigation }: Props) {
   const { user, token, logout, refreshUser } = useAuth();
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -50,6 +54,20 @@ export default function ProfileHomeScreen({ navigation }: Props) {
       await refreshUser();
     } finally {
       setIsStartingTrial(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!token) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteMe(token);
+      await logout();
+    } catch (error) {
+      setDeleteError(error instanceof ApiError ? error.message : 'Hesap silinemedi, lütfen tekrar dene');
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -85,6 +103,14 @@ export default function ProfileHomeScreen({ navigation }: Props) {
         onPress={() => navigation.navigate('Preferences')}
       />
 
+      <SettingsRow
+        testID="profile-legal-row"
+        icon="policy"
+        title="Gizlilik ve Yasal"
+        subtitle="Gizlilik metni, koşullar ve veri hakların"
+        onPress={() => navigation.navigate('Legal')}
+      />
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Üyelik</Text>
         <Text style={styles.mutedText}>
@@ -111,6 +137,17 @@ export default function ProfileHomeScreen({ navigation }: Props) {
         onPress={() => setShowLogoutConfirm(true)}
       />
 
+      <SettingsRow
+        testID="profile-delete-account-row"
+        icon="delete-outline"
+        title="Hesabı Sil"
+        subtitle="Hesabını ve ilişkili verilerini kalıcı olarak sil"
+        onPress={() => {
+          setDeleteError(null);
+          setShowDeleteConfirm(true);
+        }}
+      />
+
       <Modal visible={showLogoutConfirm} transparent animationType="fade" onRequestClose={() => setShowLogoutConfirm(false)}>
         <View style={styles.overlay}>
           <Card style={styles.logoutCard}>
@@ -129,6 +166,36 @@ export default function ProfileHomeScreen({ navigation }: Props) {
                 testID="profile-logout-confirm-button"
                 title="Çıkış Yap"
                 onPress={() => logout()}
+                style={styles.logoutActionButton}
+              />
+            </View>
+          </Card>
+        </View>
+      </Modal>
+
+      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => setShowDeleteConfirm(false)}>
+        <View style={styles.overlay}>
+          <Card style={styles.logoutCard}>
+            <MaterialIcons name="delete-forever" size={40} color={colors.error} />
+            <Text style={styles.logoutTitle}>Hesabı Kalıcı Olarak Sil</Text>
+            <Text style={styles.logoutBody}>
+              Profilin, oluşturduğun etkinlikler, katılımların ve değerlendirmelerin silinir. Bu işlem geri alınamaz.
+            </Text>
+            {deleteError ? <Text style={styles.error}>{deleteError}</Text> : null}
+            <View style={styles.logoutActions}>
+              <Button
+                testID="profile-delete-account-cancel-button"
+                variant="outline"
+                title="Vazgeç"
+                onPress={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                style={styles.logoutActionButton}
+              />
+              <Button
+                testID="profile-delete-account-confirm-button"
+                title={isDeleting ? 'Siliniyor...' : 'Hesabı Sil'}
+                onPress={handleDeleteAccount}
+                disabled={isDeleting}
                 style={styles.logoutActionButton}
               />
             </View>
@@ -246,5 +313,10 @@ const styles = StyleSheet.create({
   },
   logoutActionButton: {
     flex: 1,
+  },
+  error: {
+    ...typography.bodyMd,
+    color: colors.error,
+    textAlign: 'center',
   },
 });

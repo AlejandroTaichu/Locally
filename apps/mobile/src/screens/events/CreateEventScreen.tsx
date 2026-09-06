@@ -173,6 +173,7 @@ export default function CreateEventScreen({ navigation }: Props) {
 
         <Text style={styles.sectionLabel}>Temel Bilgiler</Text>
         <TextInput
+          testID="event-title-input"
           style={styles.input}
           placeholder="Başlık (örn. 2'ye 2 Basketbol)"
           placeholderTextColor={colors.textMuted}
@@ -207,6 +208,7 @@ export default function CreateEventScreen({ navigation }: Props) {
 
         <Text style={styles.sectionLabel}>Konum</Text>
         <TextInput
+          testID="event-location-label-input"
           style={styles.input}
           placeholder="Konum açıklaması (örn. Moda Sahili Basketbol Sahası)"
           placeholderTextColor={colors.textMuted}

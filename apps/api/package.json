@@ -17,6 +17,7 @@
     "start:prod": "node dist/main",
     "lint": "oxlint src/ test/",
     "seed": "tsx prisma/seed.ts",
+    "metrics": "tsx scripts/validation-metrics.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

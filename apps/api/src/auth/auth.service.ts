@@ -1,9 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { OtpChannel, User } from '../generated/prisma/client.js';
 import { generateOtpCode, otpExpiryDate } from './otp.util.js';
 import type { RegisterDto, RequestOtpDto, VerifyOtpDto } from './auth.schemas.js';
+import { OtpDeliveryService } from '../notifications/otp-delivery.service.js';
 
 function normalizeTarget(channel: OtpChannel, target: string): string {
   return channel === 'email' ? target.trim().toLowerCase() : target.trim();
@@ -34,11 +35,10 @@ export interface AuthResult {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly otpDelivery: OtpDeliveryService,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ userId: string }> {
@@ -144,11 +144,14 @@ export class AuthService {
 
   private async issueOtp(channel: OtpChannel, target: string): Promise<void> {
     const code = generateOtpCode();
-    await this.prisma.otpCode.create({
+    const otp = await this.prisma.otpCode.create({
       data: { channel, target, code, expiresAt: otpExpiryDate() },
     });
-
-    // No real SMS/email provider yet — simulate delivery via logs (see ADR 0002).
-    this.logger.log(`OTP for ${channel}:${target} = ${code}`);
+    try {
+      await this.otpDelivery.send(channel, target, code);
+    } catch (error) {
+      await this.prisma.otpCode.delete({ where: { id: otp.id } }).catch(() => undefined);
+      throw error;
+    }
   }
 }

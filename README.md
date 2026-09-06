@@ -31,3 +31,7 @@ pnpm exec prisma migrate dev
 pnpm api:dev       # NestJS dev server
 pnpm mobile:start  # Expo dev server (pick iOS/Android/Web from the terminal)
 ```
+
+## Soft launch
+
+Production OTP delivery, EAS build profiles, operational metrics, and store/legal checklists are documented in [docs/SOFT_LAUNCH.md](docs/SOFT_LAUNCH.md).

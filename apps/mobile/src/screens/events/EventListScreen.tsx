@@ -61,17 +61,18 @@ function SectionHeader({ title }: { title: string }) {
 interface FeaturedEventCardProps {
   event: Event;
   isSaved: boolean;
+  testID: string;
   onPress: () => void;
   onToggleSave: () => void;
 }
 
-function FeaturedEventCard({ event, isSaved, onPress, onToggleSave }: FeaturedEventCardProps) {
+function FeaturedEventCard({ event, isSaved, testID, onPress, onToggleSave }: FeaturedEventCardProps) {
   const categoryIcon = CATEGORY_ICONS[event.category] ?? DEFAULT_CATEGORY_ICON;
   const { day, month } = formatBadgeDate(event.startsAt);
 
   return (
     <Pressable
-      testID={`featured-event-${event.id}`}
+      testID={testID}
       onPress={onPress}
       style={({ pressed }) => [styles.featuredCard, pressed && styles.cardPressed]}
     >
@@ -325,11 +326,12 @@ export default function EventListScreen({ navigation }: Props) {
         <View style={styles.section}>
           <SectionHeader title="Öne Çıkanlar" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
-            {featuredEvents.map((event) => (
+            {featuredEvents.map((event, index) => (
               <FeaturedEventCard
                 key={event.id}
                 event={event}
                 isSaved={savedEventIds.has(event.id)}
+                testID={`featured-event-card-${index}`}
                 onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
                 onToggleSave={() => toggleSaved(event.id)}
               />

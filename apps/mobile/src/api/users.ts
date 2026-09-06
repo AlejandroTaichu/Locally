@@ -26,6 +26,10 @@ export function startTrial(token: string) {
   return apiClient.post<User>('/users/me/start-trial', undefined, token);
 }
 
+export function deleteMe(token: string) {
+  return apiClient.delete<void>('/users/me', token);
+}
+
 export function requestEmailChange(email: string, token: string) {
   return apiClient.post<{ ok: true }>('/users/me/email/request', { email }, token);
 }

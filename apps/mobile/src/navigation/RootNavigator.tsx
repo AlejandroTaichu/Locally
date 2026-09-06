@@ -19,6 +19,7 @@ import ProfileHomeScreen from '../screens/profile/ProfileHomeScreen';
 import EditPersonalInfoScreen from '../screens/profile/EditPersonalInfoScreen';
 import PreferencesScreen from '../screens/profile/PreferencesScreen';
 import EditInterestsScreen from '../screens/profile/EditInterestsScreen';
+import LegalScreen from '../screens/profile/LegalScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import MapExploreScreen from '../screens/events/MapExploreScreen';
 import RegionBlockedScreen from '../screens/region/RegionBlockedScreen';
@@ -86,6 +87,7 @@ function AppNavigator() {
       <AppStack.Screen name="EditPersonalInfo" component={EditPersonalInfoScreen} options={{ title: 'Kişisel Bilgiler' }} />
       <AppStack.Screen name="Preferences" component={PreferencesScreen} options={{ title: 'Tercihler' }} />
       <AppStack.Screen name="EditInterests" component={EditInterestsScreen} options={{ title: 'İlgi Alanları' }} />
+      <AppStack.Screen name="Legal" component={LegalScreen} options={{ title: 'Gizlilik ve Yasal' }} />
     </AppStack.Navigator>
   );
 }

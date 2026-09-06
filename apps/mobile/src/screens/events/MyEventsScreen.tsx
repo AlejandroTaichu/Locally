@@ -75,10 +75,11 @@ export default function MyEventsScreen({ navigation }: Props) {
           <EmptyState title="Henüz bir etkinliğe katılmadın" subtitle="Katıldığın veya oluşturduğun etkinlikler burada görünür" />
         }
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const categoryIcon = CATEGORY_ICONS[item.event.category] ?? DEFAULT_CATEGORY_ICON;
           return (
             <Pressable
+              testID={`my-event-card-${index}`}
               style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
               onPress={() => navigation.navigate('EventDetail', { eventId: item.event.id })}
             >

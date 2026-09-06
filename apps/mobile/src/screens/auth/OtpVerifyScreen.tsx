@@ -42,6 +42,7 @@ export default function OtpVerifyScreen({ route }: Props) {
       <Text style={styles.subtitle}>{target} adresine/numarasına gönderilen kodu gir</Text>
 
       <TextInput
+        testID="otp-code-input"
         style={styles.input}
         placeholder="123456"
         placeholderTextColor={colors.textMuted}

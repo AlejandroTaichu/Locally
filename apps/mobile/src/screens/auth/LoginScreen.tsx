@@ -48,6 +48,7 @@ export default function LoginScreen({ navigation }: Props) {
 
       <FadeSlideIn delay={motion.stagger.step} style={styles.fullWidth}>
         <TextInput
+          testID="login-target-input"
           style={styles.input}
           placeholder="ornek@mail.com veya +90..."
           placeholderTextColor={colors.textMuted}
@@ -66,6 +67,7 @@ export default function LoginScreen({ navigation }: Props) {
 
       <FadeSlideIn delay={motion.stagger.step * 2} style={styles.fullWidth}>
         <Button
+          testID="login-submit-button"
           title={isSubmitting ? 'Gönderiliyor...' : 'Kod Gönder'}
           onPress={handleSubmit}
           disabled={isSubmitting}
@@ -76,7 +78,7 @@ export default function LoginScreen({ navigation }: Props) {
       <FadeSlideIn delay={motion.stagger.step * 3}>
         <View style={styles.footer}>
           <Text style={styles.footerText}>Hesabın yok mu? </Text>
-          <Text style={styles.link} onPress={() => navigation.navigate('Register')}>
+          <Text testID="login-register-link" style={styles.link} onPress={() => navigation.navigate('Register')}>
             Kayıt ol
           </Text>
         </View>

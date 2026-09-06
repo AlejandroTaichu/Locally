@@ -1,16 +1,37 @@
 appId: com.join.app
 ---
 - runFlow: register-and-login.yaml
+- waitForAnimationToEnd
 - tapOn:
     id: "create-event-fab"
-- tapOn: "Başlık (örn. 2'ye 2 Basketbol)"
+- extendedWaitUntil:
+    visible:
+      id: "event-title-input"
+    timeout: 10000
+- tapOn:
+    id: "event-title-input"
 - inputText: "Maestro E2E Basketbol"
+- pressKey: Enter
 - tapOn:
     id: "category-chip-Basketbol"
-- tapOn: "Konum açıklaması (örn. Moda Sahili Basketbol Sahası)"
+- scrollUntilVisible:
+    element:
+      id: "event-location-label-input"
+    direction: DOWN
+- tapOn:
+    id: "event-location-label-input"
 - inputText: "Moda Sahili Basketbol Sahası"
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "join-type-instant-button"
+    direction: DOWN
 - tapOn:
     id: "join-type-instant-button"
+- scrollUntilVisible:
+    element:
+      id: "create-event-submit-button"
+    direction: DOWN
 - tapOn:
     id: "create-event-submit-button"
-- assertVisible: "Maestro E2E Basketbol"
+- assertVisible: "Yakınındaki Aktiviteleri Keşfet"

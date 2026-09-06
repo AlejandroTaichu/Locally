@@ -6,21 +6,34 @@ appId: com.join.app
     permissions:
       location: inuse
 - runScript: scripts/generate-test-user.js
-- tapOn: "Kayıt ol"
-- tapOn: "Ad Soyad"
+- extendedWaitUntil:
+    visible:
+      id: "login-register-link"
+    timeout: 10000
+- tapOn:
+    id: "login-register-link"
+- extendedWaitUntil:
+    visible:
+      id: "register-name-input"
+    timeout: 10000
+- tapOn:
+    id: "register-name-input"
 - inputText: "${output.displayName}"
-- tapOn: "E-posta"
+- tapOn:
+    id: "register-email-input"
 - inputText: "${output.email}"
-- tapOn: "Telefon (+90...)"
+- tapOn:
+    id: "register-phone-input"
 - inputText: "${output.phone}"
-- tapOn: "Hesap Oluştur"
+- pressKey: Enter
 - tapOn:
     id: "register-submit-button"
 - assertVisible: "Doğrulama Kodu"
 - runScript: scripts/fetch-otp.js
-- tapOn: "123456"
+- tapOn:
+    id: "otp-code-input"
 - inputText: "${output.otpCode}"
-- tapOn: "Doğrulama Kodu"
+- pressKey: Enter
 - tapOn:
     id: "otp-verify-button"
 - tapOn:

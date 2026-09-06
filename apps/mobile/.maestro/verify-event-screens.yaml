@@ -1,0 +1,17 @@
+appId: com.join.app
+---
+- runFlow: create-event.yaml
+- takeScreenshot: event-list-flat
+- tapOn:
+    id: "featured-event-card-0"
+- assertVisible: "Test Sahası"
+- takeScreenshot: event-detail-flat
+- tapOn:
+    id: "event-back-button"
+- tapOn:
+    id: "tab-etkinliklerim"
+- extendedWaitUntil:
+    visible:
+      id: "my-event-card-0"
+    timeout: 10000
+- takeScreenshot: my-events-flat

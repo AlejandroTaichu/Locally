@@ -42,4 +42,5 @@ export const apiClient = {
   get: <T>(path: string, token?: string | null) => request<T>('GET', path, { token }),
   post: <T>(path: string, body?: unknown, token?: string | null) => request<T>('POST', path, { body, token }),
   patch: <T>(path: string, body?: unknown, token?: string | null) => request<T>('PATCH', path, { body, token }),
+  delete: <T>(path: string, token?: string | null) => request<T>('DELETE', path, { token }),
 };

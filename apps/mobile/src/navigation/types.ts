@@ -21,4 +21,5 @@ export type AppStackParamList = {
   EditPersonalInfo: undefined;
   Preferences: undefined;
   EditInterests: undefined;
+  Legal: undefined;
 };

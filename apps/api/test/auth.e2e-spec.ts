@@ -107,4 +107,37 @@ describe('Auth (e2e)', () => {
       .send({ channel: 'email', target: candidate.email, code: secondCode })
       .expect(201);
   });
+
+  it('deletes an account together with its organized events', async () => {
+    const candidate = uniqueUser();
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+    const code = await readOtpCode(app, 'email', candidate.email);
+    const verifyRes = await request(app.getHttpServer())
+      .post('/auth/otp/verify')
+      .send({ channel: 'email', target: candidate.email, code })
+      .expect(201);
+    const token = verifyRes.body.accessToken as string;
+
+    await request(app.getHttpServer())
+      .post('/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Silinecek Etkinlik',
+        category: 'Koşu',
+        locationLat: 40.9789,
+        locationLng: 29.0369,
+        locationLabel: 'Moda',
+        startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        capacity: 4,
+        joinType: 'instant',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer()).delete('/users/me').set('Authorization', `Bearer ${token}`).expect(204);
+    await request(app.getHttpServer()).get('/users/me').set('Authorization', `Bearer ${token}`).expect(404);
+    await request(app.getHttpServer())
+      .post('/auth/otp/request')
+      .send({ channel: 'email', target: candidate.email })
+      .expect(404);
+  });
 });

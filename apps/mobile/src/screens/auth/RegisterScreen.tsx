@@ -40,6 +40,7 @@ export default function RegisterScreen({ navigation }: Props) {
       <Text style={styles.title}>Hesap Oluştur</Text>
 
       <TextInput
+        testID="register-name-input"
         style={styles.input}
         placeholder="Ad Soyad"
         placeholderTextColor={colors.textMuted}
@@ -47,6 +48,7 @@ export default function RegisterScreen({ navigation }: Props) {
         onChangeText={setDisplayName}
       />
       <TextInput
+        testID="register-email-input"
         style={styles.input}
         placeholder="E-posta"
         placeholderTextColor={colors.textMuted}
@@ -56,6 +58,7 @@ export default function RegisterScreen({ navigation }: Props) {
         onChangeText={setEmail}
       />
       <TextInput
+        testID="register-phone-input"
         style={styles.input}
         placeholder="Telefon (+90...)"
         placeholderTextColor={colors.textMuted}

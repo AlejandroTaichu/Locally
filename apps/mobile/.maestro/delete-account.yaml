@@ -1,0 +1,18 @@
+appId: com.join.app
+---
+- runFlow: register-and-login.yaml
+- tapOn:
+    id: "tab-profil"
+- scrollUntilVisible:
+    element:
+      id: "profile-delete-account-row"
+    direction: DOWN
+- tapOn:
+    id: "profile-delete-account-row"
+- assertVisible: "Hesabı Kalıcı Olarak Sil"
+- tapOn:
+    id: "profile-delete-account-confirm-button"
+- extendedWaitUntil:
+    visible:
+      id: "login-target-input"
+    timeout: 10000

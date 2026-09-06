@@ -1,9 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { OtpChannel } from '../generated/prisma/client.js';
 import { generateOtpCode, otpExpiryDate } from '../auth/otp.util.js';
 import type { UpdateMeDto } from './users.schemas.js';
+import { OtpDeliveryService } from '../notifications/otp-delivery.service.js';
 
 const TARGET_TAKEN_MESSAGE: Record<OtpChannel, string> = {
   email: 'Bu e-posta adresi zaten kullanımda',
@@ -12,9 +13,10 @@ const TARGET_TAKEN_MESSAGE: Record<OtpChannel, string> = {
 
 @Injectable()
 export class UsersService {
-  private readonly logger = new Logger(UsersService.name);
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly otpDelivery: OtpDeliveryService,
+  ) {}
 
   async getById(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
@@ -72,6 +74,38 @@ export class UsersService {
     }
   }
 
+  async deleteMe(id: string): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      const user = await transaction.user.findUniqueOrThrow({ where: { id } });
+      const organizedEvents = await transaction.event.findMany({ where: { organizerId: id }, select: { id: true } });
+      const organizedEventIds = organizedEvents.map((event) => event.id);
+      const participations = await transaction.participation.findMany({
+        where: {
+          OR: [{ userId: id }, ...(organizedEventIds.length > 0 ? [{ eventId: { in: organizedEventIds } }] : [])],
+        },
+        select: { id: true },
+      });
+      const participationIds = participations.map((participation) => participation.id);
+
+      if (participationIds.length > 0) {
+        await transaction.eventRating.deleteMany({ where: { participationId: { in: participationIds } } });
+        await transaction.participation.deleteMany({ where: { id: { in: participationIds } } });
+      }
+      if (organizedEventIds.length > 0) {
+        await transaction.event.deleteMany({ where: { id: { in: organizedEventIds } } });
+      }
+      await transaction.otpCode.deleteMany({
+        where: {
+          OR: [
+            { channel: 'email', target: user.email },
+            { channel: 'phone', target: user.phone },
+          ],
+        },
+      });
+      await transaction.user.delete({ where: { id } });
+    });
+  }
+
   requestEmailChange(userId: string, email: string) {
     return this.requestTargetChange('email', userId, email);
   }
@@ -100,8 +134,13 @@ export class UsersService {
     }
 
     const code = generateOtpCode();
-    await this.prisma.otpCode.create({ data: { channel, target, code, expiresAt: otpExpiryDate() } });
-    this.logger.log(`OTP for ${channel}:${target} = ${code}`);
+    const otp = await this.prisma.otpCode.create({ data: { channel, target, code, expiresAt: otpExpiryDate() } });
+    try {
+      await this.otpDelivery.send(channel, target, code);
+    } catch (error) {
+      await this.prisma.otpCode.delete({ where: { id: otp.id } }).catch(() => undefined);
+      throw error;
+    }
 
     return { ok: true };
   }
