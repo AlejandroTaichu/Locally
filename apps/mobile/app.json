@@ -31,7 +31,8 @@
         {
           "locationWhenInUsePermission": "Katıl, etkinlik oluştururken konumunu etkinliğe eklemek için izin istiyor."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

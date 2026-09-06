@@ -1,6 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { colors, radii, typography } from '../theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { colors, radii, spacing, typography } from '../theme';
 
 interface ButtonProps {
   title: string;
@@ -8,6 +9,7 @@ interface ButtonProps {
   variant?: 'primary' | 'outline';
   disabled?: boolean;
   loading?: boolean;
+  icon?: keyof typeof MaterialIcons.glyphMap;
   testID?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -18,6 +20,7 @@ export default function Button({
   variant = 'primary',
   disabled = false,
   loading = false,
+  icon,
   testID,
   style,
 }: ButtonProps) {
@@ -40,13 +43,21 @@ export default function Button({
       {loading ? (
         <ActivityIndicator color={isOutline ? colors.textPrimary : colors.onPrimary} />
       ) : (
-        <Text style={[styles.label, isOutline ? styles.outlineLabel : styles.primaryLabel]}>{title}</Text>
+        <View style={styles.content}>
+          {icon ? <MaterialIcons name={icon} size={20} color={isOutline ? colors.textPrimary : colors.onPrimary} /> : null}
+          <Text style={[styles.label, isOutline ? styles.outlineLabel : styles.primaryLabel]}>{title}</Text>
+        </View>
       )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   base: {
     borderRadius: radii.button,
     paddingVertical: 14,

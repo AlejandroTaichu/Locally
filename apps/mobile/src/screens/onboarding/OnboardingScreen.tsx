@@ -1,94 +1,139 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../navigation/types';
 import { useAuth } from '../../auth/AuthContext';
 import { updateMe } from '../../api/users';
+import { ApiError } from '../../api/client';
 import Button from '../../components/Button';
-import OnboardingCard from './OnboardingCard';
+import ProfileStep from './ProfileStep';
+import InterestsStep from './InterestsStep';
+import LocationStep, { NEIGHBORHOODS } from './LocationStep';
 import { colors, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Onboarding'>;
 
-const CARDS = [
-  {
-    title: 'Yakınındaki etkinlikleri keşfet',
-    body: 'Çevrendeki basketbol, koşu, halısaha ve daha fazla etkinliği haritada gör.',
-  },
-  {
-    title: 'Anında katıl ya da onay bekle',
-    body: 'Bazı etkinliklere tek dokunuşla katıl, bazılarında organizatörün onayını bekle.',
-  },
-  {
-    title: 'Kendi etkinliğini oluştur',
-    body: 'Sen de bir etkinlik planla ve çevrendekileri davet et.',
-  },
-];
+const STEP_LABELS = ['Profil', 'İlgi Alanları', 'Konum'];
+const TOTAL_STEPS = STEP_LABELS.length;
+const DEFAULT_AGE = 25;
 
 export default function OnboardingScreen({ navigation }: Props) {
-  const { width } = useWindowDimensions();
+  const { top, bottom } = useSafeAreaInsets();
   const { token, refreshUser } = useAuth();
-  const [index, setIndex] = useState(0);
+  const [step, setStep] = useState(1);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const isLastCard = index === CARDS.length - 1;
+  const [age, setAge] = useState(DEFAULT_AGE);
+  const [bio, setBio] = useState('');
+  const [username, setUsername] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | null>(null);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [homeLocation, setHomeLocation] = useState<{ lat: number; lng: number }>(NEIGHBORHOODS[0]);
+
+  const isFirstStep = step === 1;
+  const isLastStep = step === TOTAL_STEPS;
+  const canContinue = step !== 2 || interests.length > 0;
 
   async function finishOnboarding() {
     if (!token || isFinishing) return;
+    setError(null);
     setIsFinishing(true);
     try {
-      await updateMe({ onboardingCompleted: true }, token);
+      await updateMe(
+        {
+          onboardingCompleted: true,
+          age,
+          interests,
+          homeLocationLat: homeLocation.lat,
+          homeLocationLng: homeLocation.lng,
+          ...(bio.trim() ? { bio: bio.trim() } : {}),
+          ...(username.trim() ? { username: username.trim() } : {}),
+          ...(gender ? { gender } : {}),
+        },
+        token,
+      );
       await refreshUser();
-      navigation.replace('EventList');
+      navigation.replace('Tabs');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Bir şeyler ters gitti');
     } finally {
       setIsFinishing(false);
     }
   }
 
-  function handleScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
+  function handleNext() {
+    if (isLastStep) {
+      finishOnboarding();
+    } else {
+      setStep((s) => s + 1);
+    }
+  }
+
+  function handleBack() {
+    if (!isFirstStep) setStep((s) => s - 1);
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.skipRow}>
-        {!isLastCard ? (
-          <Text testID="onboarding-skip" style={styles.skipLink} onPress={finishOnboarding}>
-            Atla
-          </Text>
-        ) : null}
+      <View style={[styles.header, { paddingTop: top + spacing.sm }]}>
+        <View style={styles.headerRow}>
+          {!isFirstStep ? (
+            <Pressable testID="onboarding-back" onPress={handleBack} hitSlop={8}>
+              <MaterialIcons name="arrow-back" size={22} color={colors.textSecondary} />
+            </Pressable>
+          ) : (
+            <View style={styles.headerSpacer} />
+          )}
+          <Text style={styles.brandTitle}>Katıl</Text>
+          {!isLastStep ? (
+            <Text testID="onboarding-skip" style={styles.skipLink} onPress={finishOnboarding}>
+              Atla
+            </Text>
+          ) : (
+            <View style={styles.headerSpacer} />
+          )}
+        </View>
+
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%` }]} />
+        </View>
+        <View style={styles.stepLabelsRow}>
+          {STEP_LABELS.map((label, index) => (
+            <Text key={label} style={[styles.stepLabel, index + 1 <= step && styles.stepLabelActive]}>
+              {label}
+            </Text>
+          ))}
+        </View>
       </View>
 
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScrollEnd}
-        style={styles.pager}
-      >
-        {CARDS.map((card) => (
-          <View key={card.title} style={{ width }}>
-            <OnboardingCard title={card.title} body={card.body} />
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.dotsRow}>
-        {CARDS.map((card, i) => (
-          <View key={card.title} style={[styles.dot, i === index && styles.dotActive]} />
-        ))}
-      </View>
-
-      <View style={styles.footer}>
-        {isLastCard ? (
-          <Button
-            testID="onboarding-finish"
-            title={isFinishing ? '...' : 'Başla'}
-            onPress={finishOnboarding}
-            disabled={isFinishing}
+      <ScrollView contentContainerStyle={styles.content}>
+        {step === 1 ? (
+          <ProfileStep
+            age={age}
+            onAgeChange={setAge}
+            bio={bio}
+            onBioChange={setBio}
+            username={username}
+            onUsernameChange={setUsername}
+            gender={gender}
+            onGenderChange={setGender}
           />
         ) : null}
+        {step === 2 ? <InterestsStep selected={interests} onChange={setInterests} /> : null}
+        {step === 3 ? <LocationStep value={homeLocation} onChange={setHomeLocation} /> : null}
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: bottom + spacing.sm }]}>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Button
+          testID={isLastStep ? 'onboarding-finish' : 'onboarding-next'}
+          title={isFinishing ? '...' : isLastStep ? 'Başla' : 'Devam Et'}
+          onPress={handleNext}
+          disabled={isFinishing || !canContinue}
+        />
       </View>
     </View>
   );
@@ -99,40 +144,65 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  skipRow: {
-    height: 44,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
+  header: {
     paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerSpacer: {
+    width: 22,
+  },
+  brandTitle: {
+    ...typography.headlineSm,
+    color: colors.primary,
+    fontWeight: '800',
   },
   skipLink: {
     ...typography.bodyMd,
     color: colors.textSecondary,
     fontWeight: '600',
   },
-  pager: {
-    flex: 1,
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surfaceVariant,
+    overflow: 'hidden',
   },
-  dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginVertical: spacing.md,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.border,
-  },
-  dotActive: {
+  progressFill: {
+    height: '100%',
     backgroundColor: colors.primary,
-    width: 20,
+  },
+  stepLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  stepLabel: {
+    ...typography.labelCaps,
+    color: colors.textMuted,
+  },
+  stepLabelActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  content: {
+    flexGrow: 1,
+    padding: spacing.lg,
   },
   footer: {
-    minHeight: 72,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    justifyContent: 'center',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+    gap: spacing.xs,
+  },
+  error: {
+    color: colors.error,
+    ...typography.bodyMd,
   },
 });

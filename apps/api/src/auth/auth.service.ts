@@ -13,7 +13,22 @@ export interface AuthResult {
   accessToken: string;
   user: Pick<
     User,
-    'id' | 'displayName' | 'email' | 'phone' | 'isPremium' | 'emailVerifiedAt' | 'phoneVerifiedAt' | 'onboardingCompletedAt'
+    | 'id'
+    | 'displayName'
+    | 'email'
+    | 'phone'
+    | 'isPremium'
+    | 'emailVerifiedAt'
+    | 'phoneVerifiedAt'
+    | 'onboardingCompletedAt'
+    | 'age'
+    | 'bio'
+    | 'interests'
+    | 'homeLocationLat'
+    | 'homeLocationLng'
+    | 'username'
+    | 'premiumTrialEndsAt'
+    | 'gender'
   >;
 }
 
@@ -100,6 +115,14 @@ export class AuthService {
         emailVerifiedAt: refreshedUser.emailVerifiedAt,
         phoneVerifiedAt: refreshedUser.phoneVerifiedAt,
         onboardingCompletedAt: refreshedUser.onboardingCompletedAt,
+        age: refreshedUser.age,
+        bio: refreshedUser.bio,
+        interests: refreshedUser.interests,
+        homeLocationLat: refreshedUser.homeLocationLat,
+        homeLocationLng: refreshedUser.homeLocationLng,
+        username: refreshedUser.username,
+        premiumTrialEndsAt: refreshedUser.premiumTrialEndsAt,
+        gender: refreshedUser.gender,
       },
     };
   }

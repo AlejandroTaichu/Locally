@@ -6,11 +6,19 @@ export type AuthStackParamList = {
   OtpVerify: { channel: OtpChannel; target: string };
 };
 
+export type AppTabParamList = {
+  KesfetTab: undefined;
+  EtkinliklerimTab: undefined;
+  ProfilTab: undefined;
+};
+
 export type AppStackParamList = {
   Onboarding: undefined;
-  EventList: undefined;
+  Tabs: undefined;
   EventDetail: { eventId: string };
   CreateEvent: undefined;
   MapExplore: undefined;
-  Profile: undefined;
+  EditPersonalInfo: undefined;
+  Preferences: undefined;
+  EditInterests: undefined;
 };

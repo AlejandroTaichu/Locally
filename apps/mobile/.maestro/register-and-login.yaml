@@ -23,4 +23,6 @@ appId: com.join.app
 - tapOn: "Doğrulama Kodu"
 - tapOn:
     id: "otp-verify-button"
-- assertVisible: "Etkinlik Oluştur"
+- tapOn:
+    id: "onboarding-skip"
+- assertVisible: "Yakınındaki Aktiviteleri Keşfet"

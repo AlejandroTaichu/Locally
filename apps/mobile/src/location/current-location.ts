@@ -23,3 +23,13 @@ export async function getCurrentLocation(): Promise<CurrentLocation> {
     return { ...FALLBACK_LOCATION, isFallback: true };
   }
 }
+
+export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const results = await Location.geocodeAsync(address);
+    if (results.length === 0) return null;
+    return { lat: results[0].latitude, lng: results[0].longitude };
+  } catch {
+    return null;
+  }
+}

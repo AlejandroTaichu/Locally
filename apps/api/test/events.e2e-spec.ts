@@ -58,7 +58,7 @@ describe('Events (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         title: '2ye2 Basketbol',
-        category: 'basketbol',
+        category: 'Basketbol',
         locationLat: MODA.lat,
         locationLng: MODA.lng,
         locationLabel: 'Moda Sahili',
@@ -78,7 +78,7 @@ describe('Events (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         title: 'Past Event',
-        category: 'kosu',
+        category: 'Koşu',
         locationLat: MODA.lat,
         locationLng: MODA.lng,
         locationLabel: 'Moda',
@@ -93,7 +93,7 @@ describe('Events (e2e)', () => {
       .post('/events')
       .send({
         title: 'No Auth',
-        category: 'kosu',
+        category: 'Koşu',
         locationLat: MODA.lat,
         locationLng: MODA.lng,
         locationLabel: 'Moda',
@@ -109,7 +109,7 @@ describe('Events (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         title: 'Moda Kosu',
-        category: 'kosu',
+        category: 'Koşu',
         locationLat: MODA.lat,
         locationLng: MODA.lng,
         locationLabel: 'Moda Sahili',
@@ -124,7 +124,7 @@ describe('Events (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         title: 'Ankara Kosu',
-        category: 'kosu',
+        category: 'Koşu',
         locationLat: ANKARA.lat,
         locationLng: ANKARA.lng,
         locationLabel: 'Kizilay',
@@ -151,7 +151,7 @@ describe('Events (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         title: 'Detail Test',
-        category: 'kosu',
+        category: 'Koşu',
         locationLat: MODA.lat,
         locationLng: MODA.lng,
         locationLabel: 'Moda',

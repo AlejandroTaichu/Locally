@@ -17,6 +17,11 @@ End-to-end flows that drive the real app on a simulator/emulator, the same way a
    npx expo run:ios   # or: npx expo run:android
    ```
    Maestro drives an installed app binary — it cannot drive the Metro JS bundle directly.
+4. A simulated location **inside a supported city** (İstanbul/İzmir/Antalya/Ankara) — the app now gates on this at launch (region access gate, see Katıl-Vault ADR 0014), regardless of login state. Without it every flow gets stuck on the "Henüz burada değiliz" screen before reaching Login:
+   ```bash
+   xcrun simctl location booted set 40.9789,29.0369   # Moda, Kadıköy — İstanbul
+   ```
+   This persists across app relaunches until cleared (`xcrun simctl location booted clear`) or the simulator resets.
 
 ## Running
 

@@ -21,6 +21,11 @@ export class EventsController {
     return this.eventsService.list(userId, query);
   }
 
+  @Get('mine')
+  listMine(@CurrentUserId() userId: string) {
+    return this.eventsService.listMine(userId);
+  }
+
   @Get(':id')
   getById(@Param('id') id: string) {
     return this.eventsService.getById(id);

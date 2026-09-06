@@ -28,3 +28,17 @@ export function listParticipations(eventId: string, token: string) {
 export function decideParticipation(participationId: string, status: 'approved' | 'rejected', token: string) {
   return apiClient.patch<Participation>(`/participations/${participationId}`, { status }, token);
 }
+
+export interface PendingRating {
+  id: string;
+  eventId: string;
+  event: { id: string; title: string };
+}
+
+export function getPendingRating(token: string) {
+  return apiClient.get<PendingRating | null>('/participations/pending-rating', token);
+}
+
+export function submitRating(participationId: string, score: number, token: string) {
+  return apiClient.post<{ id: string; score: number }>(`/participations/${participationId}/rating`, { score }, token);
+}

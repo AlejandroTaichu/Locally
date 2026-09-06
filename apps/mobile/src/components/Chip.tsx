@@ -22,16 +22,13 @@ export default function Chip({ label, selected, onPress, testID }: ChipProps) {
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainer,
     borderRadius: radii.chip,
     paddingHorizontal: spacing.sm,
     paddingVertical: 12,
   },
   selected: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   pressed: {
     opacity: 0.85,

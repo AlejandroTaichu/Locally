@@ -61,7 +61,7 @@ const SEED_EVENTS: SeedEvent[] = [
   },
   {
     title: 'Moda Kültür Merkezi Masa Oyunları Gecesi',
-    category: 'Masa Oyunu',
+    category: 'Satranç/Masa Oyunları',
     locationLat: 40.9838,
     locationLng: 29.0297,
     locationLabel: 'Moda Kültür Merkezi',

@@ -1,7 +1,8 @@
 appId: com.join.app
 ---
 - runFlow: register-and-login.yaml
-- tapOn: "Etkinlik Oluştur"
+- tapOn:
+    id: "create-event-fab"
 - tapOn: "Başlık (örn. 2'ye 2 Basketbol)"
 - inputText: "Maestro E2E Basketbol"
 - tapOn:

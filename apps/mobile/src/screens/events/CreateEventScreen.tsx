@@ -5,12 +5,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../navigation/types';
 import { useAuth } from '../../auth/AuthContext';
 import { createEvent } from '../../api/events';
-import type { JoinType } from '../../api/events';
+import type { GenderRestriction, JoinType } from '../../api/events';
 import { ApiError } from '../../api/client';
-import { getCurrentLocation } from '../../location/current-location';
+import { getCurrentLocation, geocodeAddress } from '../../location/current-location';
 import type { CurrentLocation } from '../../location/current-location';
 import Button from '../../components/Button';
-import Card from '../../components/Card';
 import Chip from '../../components/Chip';
 import Stepper from '../../components/Stepper';
 import LocationMapPicker from '../../components/LocationMapPicker';
@@ -18,6 +17,17 @@ import { EVENT_CATEGORIES } from '../../constants/eventCategories';
 import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'CreateEvent'>;
+
+const MIN_AGE = 13;
+const MAX_AGE = 99;
+const MIN_CAPACITY = 1;
+const MAX_CAPACITY = 50;
+
+const GENDER_OPTIONS: { value: GenderRestriction; label: string }[] = [
+  { value: 'all', label: 'Herkes' },
+  { value: 'female', label: 'Kadın' },
+  { value: 'male', label: 'Erkek' },
+];
 
 function combineDateAndTime(date: Date, time: Date): Date {
   const combined = new Date(date);
@@ -29,15 +39,20 @@ export default function CreateEventScreen({ navigation }: Props) {
   const { token } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
   const [locationLabel, setLocationLabel] = useState('');
   const [location, setLocation] = useState<CurrentLocation | null>(null);
+  const [addressQuery, setAddressQuery] = useState('');
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [date, setDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const [time, setTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [capacity, setCapacity] = useState(4);
+  const [capacityText, setCapacityText] = useState('4');
   const [joinType, setJoinType] = useState<JoinType>('instant');
+  const [genderRestriction, setGenderRestriction] = useState<GenderRestriction>('all');
+  const [minAge, setMinAge] = useState(MIN_AGE);
+  const [maxAge, setMaxAge] = useState(MAX_AGE);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
@@ -74,18 +89,50 @@ export default function CreateEventScreen({ navigation }: Props) {
     }
   }
 
+  async function handleSearchAddress() {
+    if (!addressQuery.trim()) return;
+    Keyboard.dismiss();
+    setIsSearchingAddress(true);
+    setError(null);
+    try {
+      const found = await geocodeAddress(addressQuery.trim());
+      if (found) {
+        setLocation({ ...found, isFallback: false });
+      } else {
+        setError('Adres bulunamadı, haritadan dokunarak seçebilirsin');
+      }
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }
+
   function handleMapLocationChange(coordinate: { lat: number; lng: number }) {
     setLocation({ ...coordinate, isFallback: false });
   }
 
+  function handleMinAgeChange(next: number) {
+    setMinAge(next);
+    if (next > maxAge) setMaxAge(next);
+  }
+
+  function handleMaxAgeChange(next: number) {
+    setMaxAge(next);
+    if (next < minAge) setMinAge(next);
+  }
+
   async function handleSubmit() {
     setError(null);
-    if (!title.trim() || !category.trim() || !locationLabel.trim()) {
+    if (!title.trim() || !category || !locationLabel.trim()) {
       setError('Başlık, kategori ve konum açıklaması gerekli');
       return;
     }
     if (!location) {
       setError('Önce konumunu ekle');
+      return;
+    }
+    const capacity = Number.parseInt(capacityText, 10);
+    if (!Number.isFinite(capacity) || capacity < MIN_CAPACITY || capacity > MAX_CAPACITY) {
+      setError(`Kontenjan ${MIN_CAPACITY}-${MAX_CAPACITY} arasında olmalı`);
       return;
     }
     if (!token) {
@@ -98,17 +145,20 @@ export default function CreateEventScreen({ navigation }: Props) {
         {
           title: title.trim(),
           description: description.trim() ? description.trim() : undefined,
-          category: category.trim(),
+          category,
           locationLat: location.lat,
           locationLng: location.lng,
           locationLabel: locationLabel.trim(),
           startsAt: combineDateAndTime(date, time).toISOString(),
           capacity,
           joinType,
+          genderRestriction,
+          minAge,
+          maxAge,
         },
         token,
       );
-      navigation.navigate('EventList');
+      navigation.navigate('Tabs');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Bir şeyler ters gitti');
     } finally {
@@ -130,13 +180,7 @@ export default function CreateEventScreen({ navigation }: Props) {
           onChangeText={setTitle}
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Kategori"
-          placeholderTextColor={colors.textMuted}
-          value={category}
-          onChangeText={setCategory}
-        />
+        <Text style={styles.sectionLabel}>Kategori</Text>
         <View style={styles.chipRow}>
           {EVENT_CATEGORIES.map((suggestion) => (
             <Chip
@@ -169,6 +213,23 @@ export default function CreateEventScreen({ navigation }: Props) {
           value={locationLabel}
           onChangeText={setLocationLabel}
         />
+        <View style={styles.row}>
+          <TextInput
+            style={[styles.input, styles.flex]}
+            placeholder="Adres ara (örn. Moda Sahili, Kadıköy)"
+            placeholderTextColor={colors.textMuted}
+            value={addressQuery}
+            onChangeText={setAddressQuery}
+            onSubmitEditing={handleSearchAddress}
+            returnKeyType="search"
+          />
+          <Button
+            variant="outline"
+            title={isSearchingAddress ? 'Aranıyor...' : 'Ara'}
+            onPress={handleSearchAddress}
+            disabled={isSearchingAddress || !addressQuery.trim()}
+          />
+        </View>
         <LocationMapPicker
           location={location}
           onLocationChange={handleMapLocationChange}
@@ -193,7 +254,7 @@ export default function CreateEventScreen({ navigation }: Props) {
           />
         </View>
         {showDatePicker ? (
-          <Card style={styles.pickerCard}>
+          <View style={styles.pickerCard}>
             <DateTimePicker
               value={date}
               mode="date"
@@ -203,10 +264,10 @@ export default function CreateEventScreen({ navigation }: Props) {
                 if (selected) setDate(selected);
               }}
             />
-          </Card>
+          </View>
         ) : null}
         {showTimePicker ? (
-          <Card style={styles.pickerCard}>
+          <View style={styles.pickerCard}>
             <DateTimePicker
               value={time}
               mode="time"
@@ -215,11 +276,19 @@ export default function CreateEventScreen({ navigation }: Props) {
                 if (selected) setTime(selected);
               }}
             />
-          </Card>
+          </View>
         ) : null}
 
         <Text style={styles.sectionLabel}>Kapasite & Katılım</Text>
-        <Stepper testID="capacity-stepper" value={capacity} onChange={setCapacity} />
+        <TextInput
+          testID="capacity-input"
+          style={styles.input}
+          placeholder={`Kontenjan (${MIN_CAPACITY}-${MAX_CAPACITY})`}
+          placeholderTextColor={colors.textMuted}
+          keyboardType="number-pad"
+          value={capacityText}
+          onChangeText={setCapacityText}
+        />
 
         <View style={styles.row}>
           <Button
@@ -236,6 +305,29 @@ export default function CreateEventScreen({ navigation }: Props) {
             onPress={() => setJoinType('approval')}
             style={styles.flex}
           />
+        </View>
+
+        <Text style={styles.sectionLabel}>Kimler Katılabilir</Text>
+        <View style={styles.chipRow}>
+          {GENDER_OPTIONS.map((option) => (
+            <Chip
+              key={option.value}
+              testID={`gender-chip-${option.value}`}
+              label={option.label}
+              selected={genderRestriction === option.value}
+              onPress={() => setGenderRestriction(option.value)}
+            />
+          ))}
+        </View>
+        <View style={styles.ageRangeRow}>
+          <View style={styles.ageField}>
+            <Text style={styles.ageLabel}>Min Yaş</Text>
+            <Stepper testID="min-age-stepper" value={minAge} onChange={handleMinAgeChange} min={MIN_AGE} max={MAX_AGE} />
+          </View>
+          <View style={styles.ageField}>
+            <Text style={styles.ageLabel}>Max Yaş</Text>
+            <Stepper testID="max-age-stepper" value={maxAge} onChange={handleMaxAgeChange} min={MIN_AGE} max={MAX_AGE} />
+          </View>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -303,6 +395,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.xs,
+  },
+  ageRangeRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  ageField: {
+    gap: spacing.xs,
+  },
+  ageLabel: {
+    ...typography.labelCaps,
+    color: colors.textMuted,
   },
   error: {
     color: colors.error,

@@ -11,6 +11,14 @@ export interface User {
   emailVerifiedAt: string | null;
   phoneVerifiedAt: string | null;
   onboardingCompletedAt: string | null;
+  age: number | null;
+  bio: string | null;
+  interests: string[];
+  homeLocationLat: number | null;
+  homeLocationLng: number | null;
+  username: string | null;
+  premiumTrialEndsAt: string | null;
+  gender: 'male' | 'female' | null;
 }
 
 export interface AuthResult {

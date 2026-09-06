@@ -22,6 +22,17 @@ enum VisibilityScope {
   global
 }
 
+enum EventGenderRestriction {
+  male
+  female
+  all
+}
+
+enum UserGender {
+  male
+  female
+}
+
 enum ParticipationStatus {
   pending
   approved
@@ -43,9 +54,15 @@ model User {
   onboardingCompletedAt DateTime?
   displayName           String
   isPremium             Boolean   @default(false)
+  age                   Int?
+  bio                   String?
+  interests             String[] @default([])
   homeLocationLat       Float?
   homeLocationLng       Float?
-  createdAt             DateTime  @default(now())
+  username              String?     @unique
+  premiumTrialEndsAt    DateTime?
+  gender                UserGender?
+  createdAt             DateTime    @default(now())
 
   organizedEvents Event[]         @relation("EventOrganizer")
   participations  Participation[]
@@ -64,9 +81,12 @@ model Event {
   startsAt            DateTime
   capacity            Int?
   joinType            JoinType
-  premiumOnlyMatching Boolean         @default(false)
-  visibilityScope     VisibilityScope @default(local)
-  createdAt           DateTime        @default(now())
+  premiumOnlyMatching Boolean                 @default(false)
+  visibilityScope     VisibilityScope         @default(local)
+  genderRestriction   EventGenderRestriction  @default(all)
+  minAge              Int                     @default(13)
+  maxAge              Int                     @default(99)
+  createdAt           DateTime                @default(now())
 
   participations Participation[]
 
@@ -83,8 +103,17 @@ model Participation {
   status      ParticipationStatus
   requestedAt DateTime            @default(now())
   decidedAt   DateTime?
+  rating      EventRating?
 
   @@unique([eventId, userId])
+}
+
+model EventRating {
+  id              String        @id @default(uuid())
+  participation   Participation @relation(fields: [participationId], references: [id])
+  participationId String        @unique
+  score           Int
+  createdAt       DateTime      @default(now())
 }
 
 model OtpCode {
