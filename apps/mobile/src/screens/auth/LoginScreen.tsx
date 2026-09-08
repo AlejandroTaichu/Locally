@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { requestOtp } from '../../api/auth';
@@ -40,61 +40,75 @@ export default function LoginScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
-      <FadeSlideIn delay={0}>
-        <Text style={styles.title}>Katıl</Text>
-        <Text style={styles.subtitle}>E-posta veya telefon ile giriş yap</Text>
-      </FadeSlideIn>
-
-      <FadeSlideIn delay={motion.stagger.step} style={styles.fullWidth}>
-        <TextInput
-          testID="login-target-input"
-          style={styles.input}
-          placeholder="ornek@mail.com veya +90..."
-          placeholderTextColor={colors.textMuted}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={target}
-          onChangeText={setTarget}
-        />
-      </FadeSlideIn>
-
-      {error ? (
-        <FadeSlideIn delay={0} distance={4} style={styles.fullWidth}>
-          <Text style={styles.error}>{error}</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        keyboardShouldPersistTaps="handled"
+      >
+        <FadeSlideIn delay={0} style={styles.fullWidth}>
+          <Text style={styles.title}>Katıl</Text>
+          <Text style={styles.loginTitle}>Giriş Yap</Text>
+          <Text style={styles.subtitle}>E-posta veya telefon ile giriş yap</Text>
         </FadeSlideIn>
-      ) : null}
 
-      <FadeSlideIn delay={motion.stagger.step * 2} style={styles.fullWidth}>
-        <Button
-          testID="login-submit-button"
-          title={isSubmitting ? 'Gönderiliyor...' : 'Kod Gönder'}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          style={styles.submitButton}
-        />
-      </FadeSlideIn>
+        <FadeSlideIn delay={motion.stagger.step} style={styles.fullWidth}>
+          <TextInput
+            testID="login-target-input"
+            style={styles.input}
+            placeholder="ornek@mail.com veya +90..."
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={target}
+            onChangeText={setTarget}
+          />
+        </FadeSlideIn>
 
-      <FadeSlideIn delay={motion.stagger.step * 3}>
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Hesabın yok mu? </Text>
-          <Text testID="login-register-link" style={styles.link} onPress={() => navigation.navigate('Register')}>
-            Kayıt ol
-          </Text>
-        </View>
-      </FadeSlideIn>
-    </View>
+        {error ? (
+          <FadeSlideIn delay={0} distance={4} style={styles.fullWidth}>
+            <Text style={styles.error}>{error}</Text>
+          </FadeSlideIn>
+        ) : null}
+
+        <FadeSlideIn delay={motion.stagger.step * 2} style={styles.fullWidth}>
+          <Button
+            testID="login-submit-button"
+            title={isSubmitting ? 'Gönderiliyor...' : 'Kod Gönder'}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            style={styles.submitButton}
+          />
+        </FadeSlideIn>
+
+        <FadeSlideIn delay={motion.stagger.step * 3}>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Hesabın yok mu? </Text>
+            <Text testID="login-register-link" style={styles.link} onPress={() => navigation.navigate('Register')}>
+              Kayıt ol
+            </Text>
+          </View>
+        </FadeSlideIn>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    padding: spacing.lg,
     backgroundColor: colors.background,
+  },
+  content: {
+    flexGrow: 1,
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   fullWidth: {
     width: '100%',
@@ -102,6 +116,12 @@ const styles = StyleSheet.create({
   title: {
     ...typography.displayMobile,
     color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  loginTitle: {
+    ...typography.headlineMd,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.bodyMd,

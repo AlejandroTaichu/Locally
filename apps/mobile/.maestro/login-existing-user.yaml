@@ -14,7 +14,8 @@ appId: com.join.app
 - tapOn:
     id: "login-target-input"
 - inputText: "${output.email}"
-- pressKey: Enter
+- assertVisible:
+    id: "login-submit-button"
 - tapOn:
     id: "login-submit-button"
 - extendedWaitUntil:
