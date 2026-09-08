@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { tokenStorage } from './token-storage';
 import { getMe } from '../api/users';
+import { ApiError } from '../api/client';
 import type { AuthResult, User } from '../api/auth';
 
 interface AuthContextValue {
@@ -28,12 +29,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      // Restore the last-known session immediately from cache so the app
+      // doesn't wait on a network round-trip (or worse, log the user out)
+      // just because connectivity is briefly unavailable on launch.
+      const cachedUser = await tokenStorage.getUser();
+      if (cachedUser) {
+        setToken(storedToken);
+        setUser(cachedUser);
+        setIsLoading(false);
+      }
+
       try {
         const me = await getMe(storedToken);
         setToken(storedToken);
         setUser(me);
-      } catch {
-        await tokenStorage.clear();
+        await tokenStorage.setUser(me);
+      } catch (err) {
+        // Only a genuine "this token is no longer valid" response should
+        // sign the user out. A network/server error must not — the user
+        // stays signed in with whatever session we already restored.
+        if (err instanceof ApiError && err.status === 401) {
+          await tokenStorage.clear();
+          setToken(null);
+          setUser(null);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -49,6 +68,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user,
       login: async (result) => {
         await tokenStorage.set(result.accessToken);
+        await tokenStorage.setUser(result.user);
         setToken(result.accessToken);
         setUser(result.user);
       },
@@ -61,6 +81,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (!token) return;
         const me = await getMe(token);
         setUser(me);
+        await tokenStorage.setUser(me);
       },
     }),
     [isLoading, token, user],
