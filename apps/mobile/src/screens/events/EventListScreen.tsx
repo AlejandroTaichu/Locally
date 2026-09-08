@@ -13,12 +13,17 @@ import { getPendingRating, submitRating } from '../../api/participations';
 import type { PendingRating } from '../../api/participations';
 import { startTrial } from '../../api/users';
 import { getCurrentLocation } from '../../location/current-location';
-import Chip from '../../components/Chip';
 import EmptyState from '../../components/EmptyState';
 import HeaderIconButton from '../../components/HeaderIconButton';
 import RatingModal from '../../components/RatingModal';
 import TrialOfferModal from '../../components/TrialOfferModal';
-import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON, EVENT_CATEGORIES } from '../../constants/eventCategories';
+import {
+  ALL_CATEGORIES_EMOJI,
+  CATEGORY_EMOJI,
+  CATEGORY_ICONS,
+  DEFAULT_CATEGORY_ICON,
+  EVENT_CATEGORIES,
+} from '../../constants/eventCategories';
 import { formatEventWhen, isEventFillingFast } from '../../utils/events';
 import { colors, radii, spacing, typography } from '../../theme';
 
@@ -29,6 +34,7 @@ type Props = CompositeScreenProps<
 
 const FEATURED_COUNT = 5;
 const NEARBY_COUNT = 5;
+const INTEREST_COUNT = 5;
 
 function formatBadgeDate(iso: string): { day: string; month: string } {
   const date = new Date(iso);
@@ -44,6 +50,28 @@ async function shareEvent(event: Event) {
   } catch {
     // user cancelled or share sheet failed — non-fatal
   }
+}
+
+function SectionDivider() {
+  return <View style={styles.sectionDivider} />;
+}
+
+interface CategoryPillProps {
+  label: string;
+  emoji: string;
+  selected: boolean;
+  onPress: () => void;
+}
+
+function CategoryPill({ label, emoji, selected, onPress }: CategoryPillProps) {
+  return (
+    <Pressable onPress={onPress} style={styles.categoryPill} hitSlop={4}>
+      <Text style={[styles.categoryPillText, selected && styles.categoryPillTextSelected]}>
+        {emoji} {label}
+      </Text>
+      {selected ? <View style={styles.categoryPillUnderline} /> : null}
+    </Pressable>
+  );
 }
 
 function SectionHeader({ title }: { title: string }) {
@@ -300,7 +328,12 @@ export default function EventListScreen({ navigation }: Props) {
 
   const filteredEvents = selectedCategory ? events.filter((event) => event.category === selectedCategory) : events;
   const featuredEvents = events.slice(0, FEATURED_COUNT);
-  const nearbyEvents = events.slice(FEATURED_COUNT, FEATURED_COUNT + NEARBY_COUNT);
+  const nearbyEvents = [...events]
+    .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
+    .slice(0, NEARBY_COUNT);
+  const interestEvents = user
+    ? events.filter((event) => user.interests.includes(event.category)).slice(0, INTEREST_COUNT)
+    : [];
 
   const listHeader = (
     <View style={styles.listHeader}>
@@ -311,11 +344,17 @@ export default function EventListScreen({ navigation }: Props) {
       <Text style={styles.heading}>Yakınındaki Aktiviteleri Keşfet</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        <Chip label="Tümü" selected={selectedCategory === null} onPress={() => setSelectedCategory(null)} />
+        <CategoryPill
+          label="Tümü"
+          emoji={ALL_CATEGORIES_EMOJI}
+          selected={selectedCategory === null}
+          onPress={() => setSelectedCategory(null)}
+        />
         {EVENT_CATEGORIES.map((category) => (
-          <Chip
+          <CategoryPill
             key={category}
             label={category}
+            emoji={CATEGORY_EMOJI[category] ?? ''}
             selected={selectedCategory === category}
             onPress={() => setSelectedCategory(category)}
           />
@@ -323,38 +362,63 @@ export default function EventListScreen({ navigation }: Props) {
       </ScrollView>
 
       {featuredEvents.length > 0 ? (
-        <View style={styles.section}>
-          <SectionHeader title="Öne Çıkanlar" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
-            {featuredEvents.map((event, index) => (
-              <FeaturedEventCard
-                key={event.id}
-                event={event}
-                isSaved={savedEventIds.has(event.id)}
-                testID={`featured-event-card-${index}`}
-                onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
-                onToggleSave={() => toggleSaved(event.id)}
-              />
-            ))}
-          </ScrollView>
-        </View>
+        <>
+          <SectionDivider />
+          <View style={styles.section}>
+            <SectionHeader title="Öne Çıkanlar" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
+              {featuredEvents.map((event, index) => (
+                <FeaturedEventCard
+                  key={event.id}
+                  event={event}
+                  isSaved={savedEventIds.has(event.id)}
+                  testID={`featured-event-card-${index}`}
+                  onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                  onToggleSave={() => toggleSaved(event.id)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        </>
       ) : null}
 
       {nearbyEvents.length > 0 ? (
-        <View style={styles.section}>
-          <SectionHeader title="Yakınımdakiler" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nearbyRow}>
-            {nearbyEvents.map((event) => (
-              <NearbyEventCard
-                key={event.id}
-                event={event}
-                onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
-              />
-            ))}
-          </ScrollView>
-        </View>
+        <>
+          <SectionDivider />
+          <View style={styles.section}>
+            <SectionHeader title="Yakınımdakiler" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nearbyRow}>
+              {nearbyEvents.map((event) => (
+                <NearbyEventCard
+                  key={event.id}
+                  event={event}
+                  onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        </>
       ) : null}
 
+      {interestEvents.length > 0 ? (
+        <>
+          <SectionDivider />
+          <View style={styles.section}>
+            <SectionHeader title="Senin İçin" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nearbyRow}>
+              {interestEvents.map((event) => (
+                <NearbyEventCard
+                  key={event.id}
+                  event={event}
+                  onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        </>
+      ) : null}
+
+      <SectionDivider />
       <Text style={styles.sectionTitle}>Tüm Etkinlikler</Text>
     </View>
   );
@@ -503,11 +567,35 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   chipRow: {
-    gap: spacing.xs,
+    gap: spacing.md,
     paddingVertical: 2,
+  },
+  categoryPill: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  categoryPillText: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
+  },
+  categoryPillTextSelected: {
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  categoryPillUnderline: {
+    marginTop: 4,
+    height: 2,
+    borderRadius: 1,
+    alignSelf: 'stretch',
+    backgroundColor: colors.primary,
   },
   section: {
     gap: spacing.xs,
+  },
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginVertical: spacing.xs,
   },
   sectionHeader: {
     flexDirection: 'row',

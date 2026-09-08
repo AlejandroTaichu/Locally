@@ -56,3 +56,30 @@ export const CATEGORY_ICONS: Record<string, MaterialIconName> = {
 };
 
 export const DEFAULT_CATEGORY_ICON: MaterialIconName = 'sports';
+
+export const CATEGORY_EMOJI: Record<string, string> = {
+  Koşu: '🏃',
+  Bisiklet: '🚴',
+  Basketbol: '🏀',
+  Halısaha: '⚽',
+  Yüzme: '🏊',
+  Tenis: '🎾',
+  Yoga: '🧘',
+  'Doğa Yürüyüşü': '🥾',
+  'Kano/Kürek': '🛶',
+  Tırmanış: '🧗',
+  Dans: '💃',
+  'Dil Pratiği': '🗣️',
+  'Kitap Kulübü': '📚',
+  'Satranç/Masa Oyunları': '♟️',
+  Meditasyon: '🧠',
+  Fotoğrafçılık: '📷',
+  Müzik: '🎵',
+  'El Sanatları': '🎨',
+  'Yemek/Mutfak': '🍳',
+  'Kahve/Sohbet Buluşması': '☕',
+  'Girişimcilik/Networking': '🤝',
+  Gönüllülük: '💛',
+};
+
+export const ALL_CATEGORIES_EMOJI = '✨';
