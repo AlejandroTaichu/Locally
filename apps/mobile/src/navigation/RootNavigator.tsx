@@ -6,11 +6,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { AuthStackParamList, AppStackParamList, AppTabParamList } from './types';
 import { useAuth } from '../auth/AuthContext';
+import { biometricPreference } from '../auth/biometric-preference';
 import { checkRegionAccess } from '../location/region-gate';
 import type { RegionGateResult } from '../location/region-gate';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import OtpVerifyScreen from '../screens/auth/OtpVerifyScreen';
+import BiometricLockScreen from '../screens/auth/BiometricLockScreen';
 import EventListScreen from '../screens/events/EventListScreen';
 import MyEventsScreen from '../screens/events/MyEventsScreen';
 import EventDetailScreen from '../screens/events/EventDetailScreen';
@@ -20,6 +22,7 @@ import EditPersonalInfoScreen from '../screens/profile/EditPersonalInfoScreen';
 import PreferencesScreen from '../screens/profile/PreferencesScreen';
 import EditInterestsScreen from '../screens/profile/EditInterestsScreen';
 import LegalScreen from '../screens/profile/LegalScreen';
+import NotificationsScreen from '../screens/profile/NotificationsScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import MapExploreScreen from '../screens/events/MapExploreScreen';
 import RegionBlockedScreen from '../screens/region/RegionBlockedScreen';
@@ -88,6 +91,7 @@ function AppNavigator() {
       <AppStack.Screen name="Preferences" component={PreferencesScreen} options={{ title: 'Tercihler' }} />
       <AppStack.Screen name="EditInterests" component={EditInterestsScreen} options={{ title: 'İlgi Alanları' }} />
       <AppStack.Screen name="Legal" component={LegalScreen} options={{ title: 'Gizlilik ve Yasal' }} />
+      <AppStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Bildirimler' }} />
     </AppStack.Navigator>
   );
 }
@@ -95,12 +99,23 @@ function AppNavigator() {
 export default function RootNavigator() {
   const { isLoading, token } = useAuth();
   const [gate, setGate] = useState<RegionGateResult | 'checking'>('checking');
+  const [biometricState, setBiometricState] = useState<'checking' | 'locked' | 'unlocked'>('checking');
 
   useEffect(() => {
     checkRegionAccess().then(setGate);
   }, []);
 
-  if (gate === 'checking' || isLoading) {
+  // Uygulama açılışında bir kez kontrol edilir (cold-start gate) — her foreground'da değil, bilerek sınırlı tutuldu.
+  useEffect(() => {
+    if (isLoading) return;
+    if (!token) {
+      setBiometricState('unlocked');
+      return;
+    }
+    biometricPreference.get().then((enabled) => setBiometricState(enabled ? 'locked' : 'unlocked'));
+  }, [isLoading, token]);
+
+  if (gate === 'checking' || isLoading || biometricState === 'checking') {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
@@ -112,5 +127,15 @@ export default function RootNavigator() {
     return <RegionBlockedScreen reason={gate.reason} onRetry={() => checkRegionAccess().then(setGate)} />;
   }
 
-  return <NavigationContainer>{token ? <AppNavigator /> : <AuthNavigator />}</NavigationContainer>;
+  return (
+    <NavigationContainer>
+      {!token ? (
+        <AuthNavigator />
+      ) : biometricState === 'locked' ? (
+        <BiometricLockScreen onUnlock={() => setBiometricState('unlocked')} />
+      ) : (
+        <AppNavigator />
+      )}
+    </NavigationContainer>
+  );
 }

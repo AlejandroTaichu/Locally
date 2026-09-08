@@ -16,6 +16,9 @@ export interface UpdateMeInput {
   homeLocationLng?: number;
   username?: string;
   gender?: 'male' | 'female';
+  notifyEventReminders?: boolean;
+  notifyNewParticipants?: boolean;
+  notifyRecommendations?: boolean;
 }
 
 export function updateMe(input: UpdateMeInput, token: string) {

@@ -16,6 +16,9 @@ export const updateMeSchema = z.object({
     .regex(/^[a-z0-9_]{3,20}$/, 'Kullanıcı adı 3-20 karakter, sadece küçük harf/rakam/alt çizgi içerebilir')
     .optional(),
   gender: z.enum(['male', 'female'], { message: 'Geçersiz cinsiyet' }).optional(),
+  notifyEventReminders: z.boolean().optional(),
+  notifyNewParticipants: z.boolean().optional(),
+  notifyRecommendations: z.boolean().optional(),
 });
 export type UpdateMeDto = z.infer<typeof updateMeSchema>;
 

@@ -19,6 +19,9 @@ export interface User {
   username: string | null;
   premiumTrialEndsAt: string | null;
   gender: 'male' | 'female' | null;
+  notifyEventReminders: boolean;
+  notifyNewParticipants: boolean;
+  notifyRecommendations: boolean;
 }
 
 export interface AuthResult {

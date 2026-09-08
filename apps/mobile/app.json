@@ -32,7 +32,13 @@
           "locationWhenInUsePermission": "Katıl, etkinlik oluştururken konumunu etkinliğe eklemek için izin istiyor."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Katıl, hızlı ve güvenli giriş için Face ID kullanmak istiyor."
+        }
+      ]
     ]
   }
 }

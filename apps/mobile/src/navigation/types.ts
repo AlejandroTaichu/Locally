@@ -22,4 +22,5 @@ export type AppStackParamList = {
   Preferences: undefined;
   EditInterests: undefined;
   Legal: undefined;
+  Notifications: undefined;
 };

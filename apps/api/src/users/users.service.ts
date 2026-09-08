@@ -64,6 +64,9 @@ export class UsersService {
           ...(dto.homeLocationLng !== undefined ? { homeLocationLng: dto.homeLocationLng } : {}),
           ...(dto.username !== undefined ? { username: dto.username } : {}),
           ...(dto.gender !== undefined ? { gender: dto.gender } : {}),
+          ...(dto.notifyEventReminders !== undefined ? { notifyEventReminders: dto.notifyEventReminders } : {}),
+          ...(dto.notifyNewParticipants !== undefined ? { notifyNewParticipants: dto.notifyNewParticipants } : {}),
+          ...(dto.notifyRecommendations !== undefined ? { notifyRecommendations: dto.notifyRecommendations } : {}),
         },
       });
     } catch (error) {

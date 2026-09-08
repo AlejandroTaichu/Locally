@@ -1,16 +1,19 @@
-import { useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as LocalAuthentication from 'expo-local-authentication';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList, AppTabParamList } from '../../navigation/types';
 import { useAuth } from '../../auth/AuthContext';
+import { biometricPreference } from '../../auth/biometric-preference';
 import { deleteMe, startTrial } from '../../api/users';
 import { ApiError } from '../../api/client';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import SettingsRow from '../../components/SettingsRow';
+import ToggleRow from '../../components/ToggleRow';
 import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = CompositeScreenProps<BottomTabScreenProps<AppTabParamList, 'ProfilTab'>, NativeStackScreenProps<AppStackParamList>>;
@@ -28,6 +31,41 @@ export default function ProfileHomeScreen({ navigation }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricError, setBiometricError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadBiometricState() {
+      const [hasHardware, isEnrolled, enabled] = await Promise.all([
+        LocalAuthentication.hasHardwareAsync(),
+        LocalAuthentication.isEnrolledAsync(),
+        biometricPreference.get(),
+      ]);
+      setBiometricAvailable(hasHardware && isEnrolled);
+      setBiometricEnabled(enabled);
+    }
+    loadBiometricState();
+  }, []);
+
+  async function handleToggleBiometric(value: boolean) {
+    setBiometricError(null);
+    if (!value) {
+      await biometricPreference.set(false);
+      setBiometricEnabled(false);
+      return;
+    }
+
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Face ID ile Hızlı Kilidi Aç',
+    });
+    if (result.success) {
+      await biometricPreference.set(true);
+      setBiometricEnabled(true);
+    } else {
+      setBiometricError('Doğrulama başarısız, tekrar dene');
+    }
+  }
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -95,6 +133,7 @@ export default function ProfileHomeScreen({ navigation }: Props) {
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
+      <Text style={styles.sectionTitle}>Hesap</Text>
       <SettingsRow
         testID="profile-preferences-row"
         icon="tune"
@@ -102,6 +141,24 @@ export default function ProfileHomeScreen({ navigation }: Props) {
         subtitle="İlgi alanların ve konumun"
         onPress={() => navigation.navigate('Preferences')}
       />
+
+      <SettingsRow
+        testID="profile-notifications-row"
+        icon="notifications-none"
+        title="Bildirimler"
+        subtitle="Hangi konularda bildirim almak istediğin"
+        onPress={() => navigation.navigate('Notifications')}
+      />
+
+      <ToggleRow
+        testID="profile-biometric-toggle"
+        title="Face ID ile Hızlı Kilit"
+        subtitle={biometricAvailable ? 'Uygulamayı açtığında Face ID/Touch ID iste' : 'Bu cihazda Face ID/Touch ID kullanılamıyor'}
+        value={biometricEnabled}
+        onValueChange={handleToggleBiometric}
+        disabled={!biometricAvailable}
+      />
+      {biometricError ? <Text style={styles.error}>{biometricError}</Text> : null}
 
       <SettingsRow
         testID="profile-legal-row"
@@ -130,6 +187,7 @@ export default function ProfileHomeScreen({ navigation }: Props) {
         ) : null}
       </View>
 
+      <Text style={styles.sectionTitle}>Oturum</Text>
       <SettingsRow
         testID="profile-logout-row"
         icon="logout"
