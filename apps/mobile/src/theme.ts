@@ -28,7 +28,7 @@ export const spacing = {
 
 export const radii = {
   input: 12,
-  button: 14,
+  button: 999,
   card: 16,
   cardLarge: 18,
   chip: 16,

@@ -24,11 +24,14 @@ const styles = StyleSheet.create({
   base: {
     backgroundColor: colors.surfaceContainer,
     borderRadius: radii.chip,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: spacing.sm,
     paddingVertical: 12,
   },
   selected: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   pressed: {
     opacity: 0.85,
