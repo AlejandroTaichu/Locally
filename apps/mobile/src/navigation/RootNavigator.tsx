@@ -84,7 +84,7 @@ function AppNavigator() {
       <AppStack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
       <AppStack.Screen name="Tabs" component={AppTabsNavigator} options={{ headerShown: false }} />
       <AppStack.Screen name="EventDetail" component={EventDetailScreen} />
-      <AppStack.Screen name="CreateEvent" component={CreateEventScreen} options={{ title: 'Etkinlik Oluştur' }} />
+      <AppStack.Screen name="CreateEvent" component={CreateEventScreen} options={{ headerShown: false }} />
       <AppStack.Screen name="MapExplore" component={MapExploreScreen} options={{ title: 'Haritada Keşfet' }} />
       <AppStack.Screen name="EditPersonalInfo" component={EditPersonalInfoScreen} options={{ title: 'Kişisel Bilgiler' }} />
       <AppStack.Screen name="Preferences" component={PreferencesScreen} options={{ title: 'Tercihler' }} />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../navigation/types';
 import { useAuth } from '../../auth/AuthContext';
@@ -10,12 +11,13 @@ import { ApiError } from '../../api/client';
 import { getCurrentLocation, geocodeAddress } from '../../location/current-location';
 import type { CurrentLocation } from '../../location/current-location';
 import Button from '../../components/Button';
-import CategoryPill from '../../components/CategoryPill';
-import Chip from '../../components/Chip';
-import Stepper from '../../components/Stepper';
-import LocationMapPicker from '../../components/LocationMapPicker';
-import { CATEGORY_EMOJI, EVENT_CATEGORIES } from '../../constants/eventCategories';
-import { colors, radii, spacing, typography } from '../../theme';
+import CreateEventBasicsStep from './CreateEventBasicsStep';
+import CreateEventCategoryStep from './CreateEventCategoryStep';
+import CreateEventLocationStep from './CreateEventLocationStep';
+import CreateEventDateTimeStep from './CreateEventDateTimeStep';
+import CreateEventCapacityStep from './CreateEventCapacityStep';
+import CreateEventAudienceStep from './CreateEventAudienceStep';
+import { colors, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'CreateEvent'>;
 
@@ -24,11 +26,17 @@ const MAX_AGE = 99;
 const MIN_CAPACITY = 1;
 const MAX_CAPACITY = 50;
 
-const GENDER_OPTIONS: { value: GenderRestriction; label: string }[] = [
-  { value: 'all', label: 'Herkes' },
-  { value: 'female', label: 'Kadın' },
-  { value: 'male', label: 'Erkek' },
-];
+type FlowStep = 'basics' | 'location' | 'datetime' | 'capacity' | 'audience';
+type Step = FlowStep | 'category';
+
+const FLOW: FlowStep[] = ['basics', 'location', 'datetime', 'capacity', 'audience'];
+const STEP_TITLES: Record<FlowStep, string> = {
+  basics: 'Temel Bilgiler',
+  location: 'Konum',
+  datetime: 'Tarih & Saat',
+  capacity: 'Kapasite & Katılım',
+  audience: 'Kimler Katılabilir',
+};
 
 function combineDateAndTime(date: Date, time: Date): Date {
   const combined = new Date(date);
@@ -37,7 +45,10 @@ function combineDateAndTime(date: Date, time: Date): Date {
 }
 
 export default function CreateEventScreen({ navigation }: Props) {
+  const { top, bottom } = useSafeAreaInsets();
   const { token } = useAuth();
+  const [step, setStep] = useState<Step>('basics');
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -47,8 +58,6 @@ export default function CreateEventScreen({ navigation }: Props) {
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [date, setDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const [time, setTime] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [capacityText, setCapacityText] = useState('4');
   const [joinType, setJoinType] = useState<JoinType>('instant');
   const [genderRestriction, setGenderRestriction] = useState<GenderRestriction>('all');
@@ -167,182 +176,137 @@ export default function CreateEventScreen({ navigation }: Props) {
     }
   }
 
+  const flowIndex = step === 'category' ? FLOW.indexOf('basics') : FLOW.indexOf(step);
+  const isFirstStep = flowIndex === 0;
+  const isLastStep = flowIndex === FLOW.length - 1;
+
+  const canContinue =
+    step === 'basics'
+      ? title.trim().length > 0 && category != null
+      : step === 'location'
+        ? locationLabel.trim().length > 0 && location != null
+        : step === 'capacity'
+          ? (() => {
+              const capacity = Number.parseInt(capacityText, 10);
+              return Number.isFinite(capacity) && capacity >= MIN_CAPACITY && capacity <= MAX_CAPACITY;
+            })()
+          : true;
+
+  function handleContinue() {
+    setError(null);
+    if (isLastStep) {
+      handleSubmit();
+      return;
+    }
+    const nextIndex = FLOW.indexOf(step as FlowStep) + 1;
+    setStep(FLOW[nextIndex]);
+  }
+
+  function handleBack() {
+    if (step === 'category') {
+      setStep('basics');
+      return;
+    }
+    if (isFirstStep) {
+      navigation.goBack();
+      return;
+    }
+    const prevIndex = FLOW.indexOf(step as FlowStep) - 1;
+    setStep(FLOW[prevIndex]);
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Etkinlik Oluştur</Text>
-
-        <Text style={styles.sectionLabel}>Temel Bilgiler</Text>
-        <TextInput
-          testID="event-title-input"
-          style={styles.input}
-          placeholder="Başlık (örn. 2'ye 2 Basketbol)"
-          placeholderTextColor={colors.textMuted}
-          value={title}
-          onChangeText={setTitle}
-        />
-
-        <Text style={styles.sectionLabel}>Kategori</Text>
-        <View style={styles.categoryGrid}>
-          {EVENT_CATEGORIES.map((suggestion) => (
-            <CategoryPill
-              key={suggestion}
-              testID={`category-chip-${suggestion}`}
-              label={suggestion}
-              emoji={CATEGORY_EMOJI[suggestion] ?? ''}
-              selected={category === suggestion}
-              onPress={() => setCategory(suggestion)}
-            />
-          ))}
+      <View style={[styles.header, { paddingTop: top + spacing.sm }]}>
+        <View style={styles.headerRow}>
+          <Pressable testID="create-event-back" onPress={handleBack} hitSlop={8}>
+            <MaterialIcons name="arrow-back" size={22} color={colors.textSecondary} />
+          </Pressable>
+          <Text style={styles.brandTitle}>Etkinlik Oluştur</Text>
+          <View style={styles.headerSpacer} />
         </View>
-
-        <Text style={styles.sectionLabel}>Açıklama</Text>
-        <TextInput
-          style={[styles.input, styles.descriptionInput]}
-          placeholder="Açıklama (opsiyonel) — etkinlikle ilgili detaylar"
-          placeholderTextColor={colors.textMuted}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-          value={description}
-          onChangeText={setDescription}
-        />
-
-        <Text style={styles.sectionLabel}>Konum</Text>
-        <TextInput
-          testID="event-location-label-input"
-          style={styles.input}
-          placeholder="Konum açıklaması (örn. Moda Sahili Basketbol Sahası)"
-          placeholderTextColor={colors.textMuted}
-          value={locationLabel}
-          onChangeText={setLocationLabel}
-        />
-        <View style={styles.row}>
-          <TextInput
-            style={[styles.input, styles.flex]}
-            placeholder="Adres ara (örn. Moda Sahili, Kadıköy)"
-            placeholderTextColor={colors.textMuted}
-            value={addressQuery}
-            onChangeText={setAddressQuery}
-            onSubmitEditing={handleSearchAddress}
-            returnKeyType="search"
-          />
-          <Button
-            variant="outline"
-            title={isSearchingAddress ? 'Aranıyor...' : 'Ara'}
-            onPress={handleSearchAddress}
-            disabled={isSearchingAddress || !addressQuery.trim()}
-          />
-        </View>
-        <LocationMapPicker
-          location={location}
-          onLocationChange={handleMapLocationChange}
-          onRecenter={handleUseCurrentLocation}
-          isLocating={isLocating}
-        />
-        {location?.isFallback ? <Text style={styles.hint}>Konum izni alınamadı, Moda varsayılan olarak kullanıldı</Text> : null}
-
-        <Text style={styles.sectionLabel}>Tarih & Saat</Text>
-        <View style={styles.row}>
-          <Button
-            variant="outline"
-            title={`Tarih: ${date.toLocaleDateString('tr-TR')}`}
-            onPress={() => setShowDatePicker(true)}
-            style={styles.flex}
-          />
-          <Button
-            variant="outline"
-            title={`Saat: ${time.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`}
-            onPress={() => setShowTimePicker(true)}
-            style={styles.flex}
-          />
-        </View>
-        {showDatePicker ? (
-          <View style={styles.pickerCard}>
-            <DateTimePicker
-              value={date}
-              mode="date"
-              minimumDate={new Date()}
-              onChange={(_, selected) => {
-                setShowDatePicker(false);
-                if (selected) setDate(selected);
-              }}
-            />
+        {step !== 'category' ? (
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${((flowIndex + 1) / FLOW.length) * 100}%` }]} />
           </View>
         ) : null}
-        {showTimePicker ? (
-          <View style={styles.pickerCard}>
-            <DateTimePicker
-              value={time}
-              mode="time"
-              onChange={(_, selected) => {
-                setShowTimePicker(false);
-                if (selected) setTime(selected);
-              }}
+      </View>
+
+      {step === 'category' ? (
+        <CreateEventCategoryStep
+          category={category}
+          onSave={(next) => {
+            setCategory(next);
+            setStep('basics');
+          }}
+          onCancel={() => setStep('basics')}
+          bottomInset={bottom}
+        />
+      ) : (
+        <>
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            {step === 'basics' ? (
+              <CreateEventBasicsStep
+                title={title}
+                onTitleChange={setTitle}
+                description={description}
+                onDescriptionChange={setDescription}
+                category={category}
+                onOpenCategory={() => setStep('category')}
+              />
+            ) : null}
+            {step === 'location' ? (
+              <CreateEventLocationStep
+                locationLabel={locationLabel}
+                onLocationLabelChange={setLocationLabel}
+                addressQuery={addressQuery}
+                onAddressQueryChange={setAddressQuery}
+                onSearchAddress={handleSearchAddress}
+                isSearchingAddress={isSearchingAddress}
+                location={location}
+                onLocationChange={handleMapLocationChange}
+                onRecenter={handleUseCurrentLocation}
+                isLocating={isLocating}
+              />
+            ) : null}
+            {step === 'datetime' ? (
+              <CreateEventDateTimeStep date={date} onDateChange={setDate} time={time} onTimeChange={setTime} />
+            ) : null}
+            {step === 'capacity' ? (
+              <CreateEventCapacityStep
+                capacityText={capacityText}
+                onCapacityTextChange={setCapacityText}
+                minCapacity={MIN_CAPACITY}
+                maxCapacity={MAX_CAPACITY}
+                joinType={joinType}
+                onJoinTypeChange={setJoinType}
+              />
+            ) : null}
+            {step === 'audience' ? (
+              <CreateEventAudienceStep
+                genderRestriction={genderRestriction}
+                onGenderRestrictionChange={setGenderRestriction}
+                minAge={minAge}
+                onMinAgeChange={handleMinAgeChange}
+                maxAge={maxAge}
+                onMaxAgeChange={handleMaxAgeChange}
+                minAgeLimit={MIN_AGE}
+                maxAgeLimit={MAX_AGE}
+              />
+            ) : null}
+          </ScrollView>
+
+          <View style={[styles.footer, { paddingBottom: bottom + spacing.sm }]}>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Button
+              testID={isLastStep ? 'create-event-submit-button' : 'create-event-continue-button'}
+              title={isSubmitting ? 'Oluşturuluyor...' : isLastStep ? 'Etkinliği Oluştur' : 'Devam Et'}
+              onPress={handleContinue}
+              disabled={isSubmitting || !canContinue}
             />
           </View>
-        ) : null}
-
-        <Text style={styles.sectionLabel}>Kapasite & Katılım</Text>
-        <TextInput
-          testID="capacity-input"
-          style={styles.input}
-          placeholder={`Kontenjan (${MIN_CAPACITY}-${MAX_CAPACITY})`}
-          placeholderTextColor={colors.textMuted}
-          keyboardType="number-pad"
-          value={capacityText}
-          onChangeText={setCapacityText}
-        />
-
-        <View style={styles.row}>
-          <Button
-            testID="join-type-instant-button"
-            variant={joinType === 'instant' ? 'primary' : 'outline'}
-            title={joinType === 'instant' ? 'Direkt Katılım ✓' : 'Direkt Katılım'}
-            onPress={() => setJoinType('instant')}
-            style={styles.flex}
-          />
-          <Button
-            testID="join-type-approval-button"
-            variant={joinType === 'approval' ? 'primary' : 'outline'}
-            title={joinType === 'approval' ? 'Onaylı Katılım ✓' : 'Onaylı Katılım'}
-            onPress={() => setJoinType('approval')}
-            style={styles.flex}
-          />
-        </View>
-
-        <Text style={styles.sectionLabel}>Kimler Katılabilir</Text>
-        <View style={styles.chipRow}>
-          {GENDER_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              testID={`gender-chip-${option.value}`}
-              label={option.label}
-              selected={genderRestriction === option.value}
-              onPress={() => setGenderRestriction(option.value)}
-            />
-          ))}
-        </View>
-        <View style={styles.ageRangeRow}>
-          <View style={styles.ageField}>
-            <Text style={styles.ageLabel}>Min Yaş</Text>
-            <Stepper testID="min-age-stepper" value={minAge} onChange={handleMinAgeChange} min={MIN_AGE} max={MAX_AGE} />
-          </View>
-          <View style={styles.ageField}>
-            <Text style={styles.ageLabel}>Max Yaş</Text>
-            <Stepper testID="max-age-stepper" value={maxAge} onChange={handleMaxAgeChange} min={MIN_AGE} max={MAX_AGE} />
-          </View>
-        </View>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <Button
-          testID="create-event-submit-button"
-          title={isSubmitting ? 'Oluşturuluyor...' : 'Etkinliği Oluştur'}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        />
-      </ScrollView>
+        </>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -350,72 +314,46 @@ export default function CreateEventScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-  },
-  container: {
-    flexGrow: 1,
-    gap: spacing.sm,
-    padding: spacing.md,
     backgroundColor: colors.background,
   },
-  title: {
-    ...typography.headlineMd,
-    color: colors.textPrimary,
-    marginBottom: 4,
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
-  sectionLabel: {
-    ...typography.labelCaps,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
-    ...typography.bodyLg,
-  },
-  chipRow: {
+  headerRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    columnGap: spacing.md,
-    rowGap: spacing.xs,
-  },
-  descriptionInput: {
-    minHeight: 96,
-  },
-  pickerCard: {
-    padding: spacing.xs,
     alignItems: 'center',
-  },
-  hint: {
-    ...typography.labelCaps,
-    color: colors.textMuted,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-  row: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  headerSpacer: {
+    width: 22,
+  },
+  brandTitle: {
+    ...typography.headlineSm,
+    color: colors.textPrimary,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surfaceVariant,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+  },
+  content: {
+    flexGrow: 1,
+    padding: spacing.lg,
+  },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
     gap: spacing.xs,
-  },
-  ageRangeRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  ageField: {
-    gap: spacing.xs,
-  },
-  ageLabel: {
-    ...typography.labelCaps,
-    color: colors.textMuted,
   },
   error: {
     color: colors.error,

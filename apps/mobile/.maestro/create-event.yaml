@@ -13,25 +13,49 @@ appId: com.join.app
 - inputText: "Maestro E2E Basketbol"
 - pressKey: Enter
 - tapOn:
-    id: "category-chip-Basketbol"
-- scrollUntilVisible:
-    element:
+    id: "category-picker-row"
+- extendedWaitUntil:
+    visible:
+      id: "category-card-Basketbol"
+    timeout: 10000
+- tapOn:
+    id: "category-card-Basketbol"
+- tapOn:
+    id: "category-save-button"
+- extendedWaitUntil:
+    visible:
+      id: "create-event-continue-button"
+    timeout: 10000
+- tapOn:
+    id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
       id: "event-location-label-input"
-    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "event-location-label-input"
 - inputText: "Moda Sahili Basketbol Sahası"
 - pressKey: Enter
-- scrollUntilVisible:
-    element:
+- tapOn:
+    id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
+      id: "event-date-row"
+    timeout: 10000
+- tapOn:
+    id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
       id: "join-type-instant-button"
-    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "join-type-instant-button"
-- scrollUntilVisible:
-    element:
+- tapOn:
+    id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
       id: "create-event-submit-button"
-    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "create-event-submit-button"
 - assertVisible: "Yakınındaki Aktiviteleri Keşfet"
