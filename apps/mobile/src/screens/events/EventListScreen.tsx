@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -26,6 +27,7 @@ import {
 } from '../../constants/eventCategories';
 import { formatEventWhen, isEventFillingFast } from '../../utils/events';
 import { colors, radii, spacing, typography } from '../../theme';
+import { TAB_BAR_HEIGHT } from '../../navigation/PillTabBar';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, 'KesfetTab'>,
@@ -198,6 +200,9 @@ function NearbyEventCard({ event, onPress }: NearbyEventCardProps) {
 }
 
 export default function EventListScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const tabBarClearance = insets.bottom + TAB_BAR_HEIGHT + spacing.sm;
+  const fabBottom = tabBarClearance + spacing.sm;
   const { token, user, refreshUser } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -434,7 +439,7 @@ export default function EventListScreen({ navigation }: Props) {
         <FlatList
           data={filteredEvents}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: tabBarClearance }]}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={<EmptyState title="Bu kategoride etkinlik yok" subtitle="Farklı bir kategori dene" />}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
@@ -497,7 +502,7 @@ export default function EventListScreen({ navigation }: Props) {
 
       <Pressable
         testID="create-event-fab"
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        style={({ pressed }) => [styles.fab, { bottom: fabBottom }, pressed && styles.fabPressed]}
         onPress={() => navigation.navigate('CreateEvent')}
       >
         <MaterialIcons name="add" size={28} color={colors.onPrimary} />

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -15,6 +16,7 @@ import Card from '../../components/Card';
 import SettingsRow from '../../components/SettingsRow';
 import ToggleRow from '../../components/ToggleRow';
 import { colors, radii, spacing, typography } from '../../theme';
+import { TAB_BAR_HEIGHT } from '../../navigation/PillTabBar';
 
 type Props = CompositeScreenProps<BottomTabScreenProps<AppTabParamList, 'ProfilTab'>, NativeStackScreenProps<AppStackParamList>>;
 
@@ -25,6 +27,8 @@ function getInitials(displayName: string): string {
 }
 
 export default function ProfileHomeScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const tabBarClearance = insets.bottom + TAB_BAR_HEIGHT + spacing.sm;
   const { user, token, logout, refreshUser } = useAuth();
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -117,7 +121,7 @@ export default function ProfileHomeScreen({ navigation }: Props) {
   const isVerified = user.emailVerifiedAt != null || user.phoneVerifiedAt != null;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingBottom: tabBarClearance }]}>
       <View style={styles.identity}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatar}>

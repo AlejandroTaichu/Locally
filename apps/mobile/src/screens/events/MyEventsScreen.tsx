@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -14,6 +15,7 @@ import EmptyState from '../../components/EmptyState';
 import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../../constants/eventCategories';
 import { formatEventWhen } from '../../utils/events';
 import { colors, radii, spacing, typography } from '../../theme';
+import { TAB_BAR_HEIGHT } from '../../navigation/PillTabBar';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, 'EtkinliklerimTab'>,
@@ -27,6 +29,8 @@ function getStatusLabel(status: ParticipationStatus): string {
 }
 
 export default function MyEventsScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const tabBarClearance = insets.bottom + TAB_BAR_HEIGHT + spacing.sm;
   const { token } = useAuth();
   const [entries, setEntries] = useState<MyEventEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +74,7 @@ export default function MyEventsScreen({ navigation }: Props) {
       <FlatList
         data={entries}
         keyExtractor={(entry) => entry.event.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarClearance }]}
         ListEmptyComponent={
           <EmptyState title="Henüz bir etkinliğe katılmadın" subtitle="Katıldığın veya oluşturduğun etkinlikler burada görünür" />
         }

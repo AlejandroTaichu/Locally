@@ -26,7 +26,7 @@ import NotificationsScreen from '../screens/profile/NotificationsScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import MapExploreScreen from '../screens/events/MapExploreScreen';
 import RegionBlockedScreen from '../screens/region/RegionBlockedScreen';
-import { colors } from '../theme';
+import PillTabBar from './PillTabBar';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
@@ -51,10 +51,9 @@ const TAB_ICONS: Record<keyof AppTabParamList, keyof typeof MaterialIcons.glyphM
 function AppTabsNavigator() {
   return (
     <AppTabs.Navigator
+      tabBar={(props) => <PillTabBar {...props} />}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => <MaterialIcons name={TAB_ICONS[route.name]} size={size} color={color} />,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
       })}
     >
       <AppTabs.Screen
