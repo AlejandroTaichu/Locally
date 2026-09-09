@@ -10,10 +10,11 @@ import { ApiError } from '../../api/client';
 import { getCurrentLocation, geocodeAddress } from '../../location/current-location';
 import type { CurrentLocation } from '../../location/current-location';
 import Button from '../../components/Button';
+import CategoryPill from '../../components/CategoryPill';
 import Chip from '../../components/Chip';
 import Stepper from '../../components/Stepper';
 import LocationMapPicker from '../../components/LocationMapPicker';
-import { EVENT_CATEGORIES } from '../../constants/eventCategories';
+import { CATEGORY_EMOJI, EVENT_CATEGORIES } from '../../constants/eventCategories';
 import { colors, radii, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'CreateEvent'>;
@@ -182,12 +183,13 @@ export default function CreateEventScreen({ navigation }: Props) {
         />
 
         <Text style={styles.sectionLabel}>Kategori</Text>
-        <View style={styles.chipRow}>
+        <View style={styles.categoryGrid}>
           {EVENT_CATEGORIES.map((suggestion) => (
-            <Chip
+            <CategoryPill
               key={suggestion}
               testID={`category-chip-${suggestion}`}
               label={suggestion}
+              emoji={CATEGORY_EMOJI[suggestion] ?? ''}
               selected={category === suggestion}
               onPress={() => setCategory(suggestion)}
             />
@@ -379,6 +381,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: spacing.md,
+    rowGap: spacing.xs,
   },
   descriptionInput: {
     minHeight: 96,

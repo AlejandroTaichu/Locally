@@ -14,6 +14,7 @@ import { getPendingRating, submitRating } from '../../api/participations';
 import type { PendingRating } from '../../api/participations';
 import { startTrial } from '../../api/users';
 import { getCurrentLocation } from '../../location/current-location';
+import CategoryPill from '../../components/CategoryPill';
 import EmptyState from '../../components/EmptyState';
 import HeaderIconButton from '../../components/HeaderIconButton';
 import RatingModal from '../../components/RatingModal';
@@ -56,24 +57,6 @@ async function shareEvent(event: Event) {
 
 function SectionDivider() {
   return <View style={styles.sectionDivider} />;
-}
-
-interface CategoryPillProps {
-  label: string;
-  emoji: string;
-  selected: boolean;
-  onPress: () => void;
-}
-
-function CategoryPill({ label, emoji, selected, onPress }: CategoryPillProps) {
-  return (
-    <Pressable onPress={onPress} style={styles.categoryPill} hitSlop={4}>
-      <Text style={[styles.categoryPillText, selected && styles.categoryPillTextSelected]}>
-        {emoji} {label}
-      </Text>
-      {selected ? <View style={styles.categoryPillUnderline} /> : null}
-    </Pressable>
-  );
 }
 
 function SectionHeader({ title }: { title: string }) {
@@ -574,25 +557,6 @@ const styles = StyleSheet.create({
   chipRow: {
     gap: spacing.md,
     paddingVertical: 2,
-  },
-  categoryPill: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  categoryPillText: {
-    ...typography.bodyMd,
-    color: colors.textMuted,
-  },
-  categoryPillTextSelected: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  categoryPillUnderline: {
-    marginTop: 4,
-    height: 2,
-    borderRadius: 1,
-    alignSelf: 'stretch',
-    backgroundColor: colors.primary,
   },
   section: {
     gap: spacing.xs,
