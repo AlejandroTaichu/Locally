@@ -1,4 +1,5 @@
 import { Body, Controller, Get, NotFoundException, Post, Query, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { TestEndpointsGuard } from '../common/guards/test-endpoints.guard.js';
@@ -11,6 +12,10 @@ const otpDebugQuerySchema = z.object({
   target: z.string().trim().min(3),
 });
 
+// Tighter than the app-wide default: these routes are the credential-guessing
+// surface (account enumeration, OTP brute force), so they get their own cap
+// on top of the per-target cooldown enforced in OtpChallengeService.
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
