@@ -124,14 +124,20 @@ export class AuthService {
     const passwordHash = await hashPassword(dto.newPassword);
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash, emailVerifiedAt: user.emailVerifiedAt ?? new Date() },
+      data: {
+        passwordHash,
+        emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+        // Invalidates every token issued before the reset — closes the
+        // window where a compromised account's old sessions stay valid.
+        sessionVersion: { increment: 1 },
+      },
     });
 
     return this.toAuthResult(updatedUser);
   }
 
   private async toAuthResult(user: User): Promise<AuthResult> {
-    const accessToken = await this.jwtService.signAsync({ sub: user.id });
+    const accessToken = await this.jwtService.signAsync({ sub: user.id, sessionVersion: user.sessionVersion });
     return {
       accessToken,
       user: {

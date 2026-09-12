@@ -112,4 +112,40 @@ describe('Login & password reset (e2e)', () => {
       .send({ email: candidate.email, password: 'YeniSifre1234' })
       .expect(201);
   });
+
+  it('invalidates tokens issued before a password reset', async () => {
+    const candidate = await registerAndVerify(app);
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: candidate.email, password: candidate.password })
+      .expect(201);
+    const oldToken = loginRes.body.accessToken as string;
+
+    await request(app.getHttpServer())
+      .get('/users/me')
+      .set('Authorization', `Bearer ${oldToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/auth/otp/request')
+      .send({ channel: 'email', target: candidate.email })
+      .expect(201);
+    const resetCode = await readOtpCode(app, candidate.email);
+    const resetRes = await request(app.getHttpServer())
+      .post('/auth/password/reset')
+      .send({ email: candidate.email, code: resetCode, newPassword: 'YeniSifre1234' })
+      .expect(201);
+    const newToken = resetRes.body.accessToken as string;
+
+    await request(app.getHttpServer())
+      .get('/users/me')
+      .set('Authorization', `Bearer ${oldToken}`)
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .get('/users/me')
+      .set('Authorization', `Bearer ${newToken}`)
+      .expect(200);
+  });
 });

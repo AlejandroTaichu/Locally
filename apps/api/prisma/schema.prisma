@@ -50,6 +50,7 @@ model User {
   email                 String    @unique
   emailVerifiedAt       DateTime?
   passwordHash          String?
+  sessionVersion        Int       @default(0)
   phone                 String    @unique
   phoneVerifiedAt       DateTime?
   onboardingCompletedAt DateTime?
