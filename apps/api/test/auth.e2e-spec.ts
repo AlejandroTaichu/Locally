@@ -6,10 +6,12 @@ import { AppModule } from '../src/app.module.js';
 
 function uniqueUser() {
   const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const phoneSuffix = suffix.replace(/\D/g, '').slice(-15);
   return {
     displayName: 'Test User',
     email: `test-${suffix}@example.com`,
-    phone: `+9055500${suffix.slice(-5)}`,
+    phone: `+90${phoneSuffix}`,
+    password: 'Sifre1234',
   };
 }
 
@@ -83,6 +85,35 @@ describe('Auth (e2e)', () => {
       .expect(400);
   });
 
+  it('locks an OTP after five wrong verification attempts', async () => {
+    const candidate = uniqueUser();
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+    const correctCode = await readOtpCode(app, 'email', candidate.email);
+    const wrongCode = correctCode === '000000' ? '111111' : '000000';
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await request(app.getHttpServer())
+        .post('/auth/otp/verify')
+        .send({ channel: 'email', target: candidate.email, code: wrongCode })
+        .expect(400);
+    }
+
+    await request(app.getHttpServer())
+      .post('/auth/otp/verify')
+      .send({ channel: 'email', target: candidate.email, code: correctCode })
+      .expect(400);
+  });
+
+  it('rate limits repeated OTP delivery requests for the same target', async () => {
+    const candidate = uniqueUser();
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/otp/request')
+      .send({ channel: 'email', target: candidate.email })
+      .expect(429);
+  });
+
   it('rejects unauthenticated access to /users/me', async () => {
     await request(app.getHttpServer()).get('/users/me').expect(401);
   });
@@ -106,6 +137,26 @@ describe('Auth (e2e)', () => {
       .post('/auth/otp/verify')
       .send({ channel: 'email', target: candidate.email, code: secondCode })
       .expect(201);
+  });
+
+  it('does not allow a user to grant premium access through profile updates', async () => {
+    const candidate = uniqueUser();
+    await request(app.getHttpServer()).post('/auth/register').send(candidate).expect(201);
+    const code = await readOtpCode(app, 'email', candidate.email);
+    const verifyRes = await request(app.getHttpServer())
+      .post('/auth/otp/verify')
+      .send({ channel: 'email', target: candidate.email, code })
+      .expect(201);
+    const token = verifyRes.body.accessToken as string;
+
+    await request(app.getHttpServer())
+      .patch('/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isPremium: true })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.isPremium).toBe(false);
+      });
   });
 
   it('deletes an account together with its organized events', async () => {

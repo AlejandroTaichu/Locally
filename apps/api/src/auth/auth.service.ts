@@ -1,10 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { OtpChannel, User } from '../generated/prisma/client.js';
-import { generateOtpCode, otpExpiryDate } from './otp.util.js';
-import type { RegisterDto, RequestOtpDto, VerifyOtpDto } from './auth.schemas.js';
-import { OtpDeliveryService } from '../notifications/otp-delivery.service.js';
+import type { LoginDto, RegisterDto, RequestOtpDto, ResetPasswordDto, VerifyOtpDto } from './auth.schemas.js';
+import { OtpChallengeService } from './otp-challenge.service.js';
+import { hashPassword, verifyPassword } from './password.util.js';
 
 function normalizeTarget(channel: OtpChannel, target: string): string {
   return channel === 'email' ? target.trim().toLowerCase() : target.trim();
@@ -38,7 +38,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly otpDelivery: OtpDeliveryService,
+    private readonly otpChallenge: OtpChallengeService,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ userId: string }> {
@@ -49,11 +49,13 @@ export class AuthService {
       throw new ConflictException('A user with this email or phone already exists');
     }
 
+    const passwordHash = await hashPassword(dto.password);
     const user = await this.prisma.user.create({
       data: {
         displayName: dto.displayName,
         email: dto.email,
         phone: dto.phone,
+        passwordHash,
       },
     });
 
@@ -76,53 +78,79 @@ export class AuthService {
   async verifyOtp(dto: VerifyOtpDto): Promise<AuthResult> {
     const target = normalizeTarget(dto.channel, dto.target);
 
-    const otp = await this.prisma.otpCode.findFirst({
-      where: { channel: dto.channel, target, consumedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!otp || otp.code !== dto.code || otp.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired code');
-    }
+    const otp = await this.otpChallenge.validate(dto.channel, target, dto.code);
 
     const user = await this.findUserByChannelTarget(dto.channel, target);
     if (!user) {
       throw new NotFoundException('No account found for this email/phone');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.otpCode.update({ where: { id: otp.id }, data: { consumedAt: new Date() } }),
-      this.prisma.user.update({
-        where: { id: user.id },
-        data:
-          dto.channel === 'email'
-            ? { emailVerifiedAt: user.emailVerifiedAt ?? new Date() }
-            : { phoneVerifiedAt: user.phoneVerifiedAt ?? new Date() },
-      }),
-    ]);
+    await this.otpChallenge.consume(otp.id);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data:
+        dto.channel === 'email'
+          ? { emailVerifiedAt: user.emailVerifiedAt ?? new Date() }
+          : { phoneVerifiedAt: user.phoneVerifiedAt ?? new Date() },
+    });
 
     const refreshedUser = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-    const accessToken = await this.jwtService.signAsync({ sub: refreshedUser.id });
+    return this.toAuthResult(refreshedUser);
+  }
 
+  async login(dto: LoginDto): Promise<AuthResult> {
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !user.passwordHash || !(await verifyPassword(dto.password, user.passwordHash))) {
+      throw new UnauthorizedException('E-posta veya şifre hatalı');
+    }
+    if (!user.emailVerifiedAt) {
+      throw new UnauthorizedException('Önce hesabını e-postana gelen kodla doğrulaman gerekiyor');
+    }
+
+    return this.toAuthResult(user);
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<AuthResult> {
+    const email = dto.email.trim().toLowerCase();
+    const otp = await this.otpChallenge.validate('email', email, dto.code);
+
+    const user = await this.findUserByChannelTarget('email', email);
+    if (!user) {
+      throw new NotFoundException('No account found for this email/phone');
+    }
+
+    await this.otpChallenge.consume(otp.id);
+    const passwordHash = await hashPassword(dto.newPassword);
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, emailVerifiedAt: user.emailVerifiedAt ?? new Date() },
+    });
+
+    return this.toAuthResult(updatedUser);
+  }
+
+  private async toAuthResult(user: User): Promise<AuthResult> {
+    const accessToken = await this.jwtService.signAsync({ sub: user.id });
     return {
       accessToken,
       user: {
-        id: refreshedUser.id,
-        displayName: refreshedUser.displayName,
-        email: refreshedUser.email,
-        phone: refreshedUser.phone,
-        isPremium: refreshedUser.isPremium,
-        emailVerifiedAt: refreshedUser.emailVerifiedAt,
-        phoneVerifiedAt: refreshedUser.phoneVerifiedAt,
-        onboardingCompletedAt: refreshedUser.onboardingCompletedAt,
-        age: refreshedUser.age,
-        bio: refreshedUser.bio,
-        interests: refreshedUser.interests,
-        homeLocationLat: refreshedUser.homeLocationLat,
-        homeLocationLng: refreshedUser.homeLocationLng,
-        username: refreshedUser.username,
-        premiumTrialEndsAt: refreshedUser.premiumTrialEndsAt,
-        gender: refreshedUser.gender,
+        id: user.id,
+        displayName: user.displayName,
+        email: user.email,
+        phone: user.phone,
+        isPremium: user.isPremium,
+        emailVerifiedAt: user.emailVerifiedAt,
+        phoneVerifiedAt: user.phoneVerifiedAt,
+        onboardingCompletedAt: user.onboardingCompletedAt,
+        age: user.age,
+        bio: user.bio,
+        interests: user.interests,
+        homeLocationLat: user.homeLocationLat,
+        homeLocationLng: user.homeLocationLng,
+        username: user.username,
+        premiumTrialEndsAt: user.premiumTrialEndsAt,
+        gender: user.gender,
       },
     };
   }
@@ -143,15 +171,6 @@ export class AuthService {
   }
 
   private async issueOtp(channel: OtpChannel, target: string): Promise<void> {
-    const code = generateOtpCode();
-    const otp = await this.prisma.otpCode.create({
-      data: { channel, target, code, expiresAt: otpExpiryDate() },
-    });
-    try {
-      await this.otpDelivery.send(channel, target, code);
-    } catch (error) {
-      await this.prisma.otpCode.delete({ where: { id: otp.id } }).catch(() => undefined);
-      throw error;
-    }
+    await this.otpChallenge.issue(channel, target);
   }
 }

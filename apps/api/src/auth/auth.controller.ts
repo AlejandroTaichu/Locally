@@ -3,8 +3,15 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { TestEndpointsGuard } from '../common/guards/test-endpoints.guard.js';
-import { registerSchema, requestOtpSchema, verifyOtpSchema, otpChannelSchema } from './auth.schemas.js';
-import type { RegisterDto, RequestOtpDto, VerifyOtpDto } from './auth.schemas.js';
+import {
+  registerSchema,
+  requestOtpSchema,
+  verifyOtpSchema,
+  otpChannelSchema,
+  loginSchema,
+  resetPasswordSchema,
+} from './auth.schemas.js';
+import type { LoginDto, RegisterDto, RequestOtpDto, ResetPasswordDto, VerifyOtpDto } from './auth.schemas.js';
 import { z } from 'zod';
 
 const otpDebugQuerySchema = z.object({
@@ -33,6 +40,16 @@ export class AuthController {
   @Post('otp/verify')
   verifyOtp(@Body(new ZodValidationPipe(verifyOtpSchema)) dto: VerifyOtpDto) {
     return this.authService.verifyOtp(dto);
+  }
+
+  @Post('login')
+  login(@Body(new ZodValidationPipe(loginSchema)) dto: LoginDto) {
+    return this.authService.login(dto);
+  }
+
+  @Post('password/reset')
+  resetPassword(@Body(new ZodValidationPipe(resetPasswordSchema)) dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @Get('otp/debug')

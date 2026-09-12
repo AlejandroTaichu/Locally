@@ -5,6 +5,7 @@ import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
+import { OtpChallengeService } from './otp-challenge.service.js';
 
 @Module({
   imports: [
@@ -17,8 +18,8 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
       }),
     }),
   ],
-  providers: [AuthService, JwtAuthGuard],
+  providers: [AuthService, JwtAuthGuard, OtpChallengeService],
   controllers: [AuthController],
-  exports: [JwtModule, JwtAuthGuard],
+  exports: [JwtModule, JwtAuthGuard, OtpChallengeService],
 })
 export class AuthModule {}

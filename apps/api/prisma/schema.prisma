@@ -49,6 +49,7 @@ model User {
   id                    String    @id @default(uuid())
   email                 String    @unique
   emailVerifiedAt       DateTime?
+  passwordHash          String?
   phone                 String    @unique
   phoneVerifiedAt       DateTime?
   onboardingCompletedAt DateTime?
@@ -126,6 +127,7 @@ model OtpCode {
   code       String
   expiresAt  DateTime
   consumedAt DateTime?
+  failedAttempts Int    @default(0)
   createdAt  DateTime   @default(now())
 
   @@index([target, channel])

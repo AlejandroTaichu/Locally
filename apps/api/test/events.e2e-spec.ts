@@ -9,10 +9,12 @@ const ANKARA = { lat: 39.9208, lng: 32.8541 };
 
 function uniqueUser() {
   const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const phoneSuffix = suffix.replace(/\D/g, '').slice(-15);
   return {
     displayName: 'Event Organizer',
     email: `organizer-${suffix}@example.com`,
-    phone: `+9055501${suffix.slice(-5)}`,
+    phone: `+90${phoneSuffix}`,
+    password: 'Sifre1234',
   };
 }
 
