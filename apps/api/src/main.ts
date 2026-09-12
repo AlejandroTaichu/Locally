@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import * as Sentry from '@sentry/node';
+import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 
 if (process.env.SENTRY_DSN) {
@@ -15,6 +16,7 @@ if (process.env.SENTRY_DSN) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(helmet());
   const requestLogger = new Logger('HTTP');
   app.use((request: Request, response: Response, next: NextFunction) => {
     const startedAt = Date.now();
