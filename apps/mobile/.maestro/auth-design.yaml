@@ -50,6 +50,10 @@ appId: com.join.app
 - tapOn:
     id: "register-submit-button"
 - assertVisible: "Tüm alanları doldur"
+- scrollUntilVisible:
+    element:
+      id: "auth-back-button"
+    direction: UP
 - tapOn:
     id: "auth-back-button"
 - assertVisible:
