@@ -30,6 +30,8 @@ export default function Button({
   return (
     <Pressable
       testID={testID}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [
@@ -59,6 +61,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   base: {
+    minHeight: 52,
     borderRadius: radii.button,
     paddingVertical: 14,
     paddingHorizontal: 20,
@@ -81,6 +84,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.bodyLg,
+    fontFamily: 'DMSans_700Bold',
     fontWeight: '700',
   },
   primaryLabel: {

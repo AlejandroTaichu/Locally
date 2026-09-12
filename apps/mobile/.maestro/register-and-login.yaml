@@ -6,6 +6,11 @@ appId: com.join.app
     permissions:
       location: inuse
 - runScript: scripts/generate-test-user.js
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Tekrar Dene"
+    optional: true
 - extendedWaitUntil:
     visible:
       id: "login-register-link"
@@ -25,6 +30,13 @@ appId: com.join.app
 - tapOn:
     id: "register-phone-input"
 - inputText: "${output.phone}"
+- hideKeyboard
+- tapOn:
+    id: "register-password-input"
+- inputText: "${output.password}"
+- tapOn:
+    id: "register-confirm-password-input"
+- inputText: "${output.password}"
 - pressKey: Enter
 - tapOn:
     id: "register-submit-button"
@@ -38,4 +50,5 @@ appId: com.join.app
     id: "otp-verify-button"
 - tapOn:
     id: "onboarding-skip"
-- assertVisible: "Yakınındaki Aktiviteleri Keşfet"
+- assertVisible:
+    id: "discover-heading"

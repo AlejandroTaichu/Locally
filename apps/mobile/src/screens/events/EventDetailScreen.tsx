@@ -14,7 +14,7 @@ import type { Participation } from '../../api/participations';
 import { ApiError } from '../../api/client';
 import Button from '../../components/Button';
 import HeaderIconButton from '../../components/HeaderIconButton';
-import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../../constants/eventCategories';
+import EventArtwork from '../../components/EventArtwork';
 import { formatEventWhen, formatSpots, isEventFillingFast } from '../../utils/events';
 import { colors, radii, spacing, typography } from '../../theme';
 
@@ -168,7 +168,6 @@ export default function EventDetailScreen({ navigation, route }: Props) {
   const confirmedParticipants = participations.filter((p) => CONFIRMED_STATUSES.includes(p.status));
   const pendingParticipants = participations.filter((p) => p.status === 'pending');
 
-  const categoryIcon = CATEGORY_ICONS[event.category] ?? DEFAULT_CATEGORY_ICON;
   const fillingFast = isEventFillingFast(event);
   const spotsLabel = formatSpots(event);
   const genderRestrictionLabel = getGenderRestrictionLabel(event);
@@ -183,7 +182,7 @@ export default function EventDetailScreen({ navigation, route }: Props) {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: showFooter ? 96 + insets.bottom : spacing.lg }]}
       >
         <View style={styles.hero}>
-          <MaterialIcons name={categoryIcon} size={72} color={colors.primary} />
+          <EventArtwork category={event.category} style={StyleSheet.absoluteFill} />
           {fillingFast ? (
             <View style={styles.liveBadge}>
               <View style={styles.liveDot} />
@@ -383,8 +382,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    padding: spacing.md,
-    gap: spacing.md,
+    padding: spacing.lg,
+    gap: 20,
   },
   center: {
     flex: 1,
@@ -398,8 +397,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   hero: {
-    height: 220,
-    borderRadius: radii.card,
+    height: 240,
+    borderRadius: 24,
+    overflow: 'hidden',
     backgroundColor: colors.surfaceVariant,
     alignItems: 'center',
     justifyContent: 'center',
@@ -456,6 +456,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.headlineMd,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 30,
+    lineHeight: 35,
+    letterSpacing: -0.8,
     color: colors.textPrimary,
   },
   description: {
@@ -464,6 +468,10 @@ const styles = StyleSheet.create({
   },
   infoGrid: {
     gap: spacing.sm,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
   },
   infoGridRow: {
     flexDirection: 'row',

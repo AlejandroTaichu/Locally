@@ -1,0 +1,113 @@
+# Signed-in local test account. Exercises the draft only; never publishes.
+appId: com.join.app
+---
+- launchApp:
+    permissions:
+      location: inuse
+- tapOn:
+    text: "Tekrar Dene"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-kesfet"
+    timeout: 60000
+- tapOn:
+    id: "tab-kesfet"
+- tapOn:
+    id: "create-event-fab"
+- assertVisible:
+    id: "event-title-input"
+- waitForAnimationToEnd
+- takeScreenshot: create-basics
+- tapOn:
+    id: "event-title-input"
+- waitForAnimationToEnd
+- tapOn:
+    id: "event-title-input"
+- inputText: "Birlikte basketbol"
+- pressKey: Enter
+- hideKeyboard
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "category-picker-row"
+    direction: DOWN
+- tapOn:
+    id: "category-picker-row"
+- tapOn:
+    id: "category-card-Basketbol"
+- waitForAnimationToEnd
+- takeScreenshot: create-category
+- tapOn:
+    id: "category-save-button"
+- assertVisible: "Birlikte basketbol"
+- tapOn:
+    id: "create-event-continue-button"
+- assertVisible:
+    id: "location-map-picker"
+- waitForAnimationToEnd
+- takeScreenshot: create-location
+- tapOn:
+    id: "location-map-picker"
+- scrollUntilVisible:
+    element:
+      id: "event-location-label-input"
+    direction: DOWN
+- tapOn:
+    id: "event-location-label-input"
+- waitForAnimationToEnd
+- tapOn:
+    id: "event-location-label-input"
+- eraseText
+- inputText: "Moda Sahili"
+- pressKey: Enter
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: "create-event-continue-button"
+- assertVisible:
+    id: "event-datetime-step"
+- waitForAnimationToEnd
+- takeScreenshot: create-datetime
+- tapOn:
+    id: "create-event-continue-button"
+- tapOn:
+    id: "capacity-input-increase"
+- scrollUntilVisible:
+    element:
+      id: "join-type-approval-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "join-type-approval-button"
+- waitForAnimationToEnd
+- takeScreenshot: create-capacity
+- tapOn:
+    id: "create-event-continue-button"
+- tapOn:
+    id: "gender-chip-female"
+- tapOn:
+    id: "min-age-input"
+- eraseText
+- inputText: "18"
+- tapOn: "Yaş aralığı"
+- waitForAnimationToEnd
+- takeScreenshot: create-audience
+- assertVisible:
+    id: "create-event-submit-button"
+- tapOn:
+    id: "create-event-back"
+- assertVisible: "5"
+- tapOn:
+    id: "create-event-back"
+- assertVisible:
+    id: "event-datetime-step"
+- tapOn:
+    id: "create-event-back"
+- assertVisible: "Moda Sahili"
+- tapOn:
+    id: "create-event-back"
+- assertVisible: "Birlikte basketbol"
+- assertVisible:
+    id: "category-picker-row"
+    text: ".*Basketbol.*"

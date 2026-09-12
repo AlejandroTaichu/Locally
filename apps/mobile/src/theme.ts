@@ -1,19 +1,18 @@
-// Katıl brand design system — resolved from the "Katıl Design System" in the
-// KatılApp Stitch project (Active Orange seed, Deep Navy secondary, Inter).
+// Katıl — warm paper, ink, and a restrained vermilion accent.
 
 export const colors = {
-  primary: '#B02F00',
-  primaryDark: '#B02F00',
-  primaryContainer: '#FF5722',
+  primary: '#C64020',
+  primaryDark: '#A63218',
+  primaryContainer: '#F07553',
   onPrimary: '#FFFFFF',
-  background: '#FFFFFF',
+  background: '#FAF9F6',
   surface: '#FFFFFF',
-  surfaceVariant: '#D3E4FE',
-  surfaceContainer: '#E5EEFF',
-  border: '#F2E6E2',
-  textPrimary: '#0B1C30',
-  textSecondary: '#5B4039',
-  textMuted: '#907067',
+  surfaceVariant: '#E8EDE5',
+  surfaceContainer: '#F2EEE7',
+  border: '#E5E3DC',
+  textPrimary: '#242A26',
+  textSecondary: '#646A62',
+  textMuted: '#70766D',
   error: '#BA1A1A',
   errorContainer: '#FFDAD6',
 };

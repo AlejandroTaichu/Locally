@@ -30,6 +30,7 @@ maestro test apps/mobile/.maestro/register-and-login.yaml
 maestro test apps/mobile/.maestro/login-existing-user.yaml
 maestro test apps/mobile/.maestro/delete-account.yaml
 maestro test apps/mobile/.maestro/create-event.yaml
+maestro test apps/mobile/.maestro/participation-lifecycle.yaml
 maestro test apps/mobile/.maestro/verify-event-screens.yaml
 ```
 
@@ -39,6 +40,7 @@ maestro test apps/mobile/.maestro/verify-event-screens.yaml
 - `login-existing-user.yaml` — registers, logs out, then logs back in with the same account; verifies the keyboard-safe login submit path.
 - `delete-account.yaml` — registers a user, deletes the account from Profile, and verifies the session returns to Login.
 - `create-event.yaml` — runs the login flow, then creates an event using the device's (simulated) current location.
+- `participation-lifecycle.yaml` — creates organizer and participant accounts, publishes an approval event, requests and approves participation, then verifies the participant's approved status.
 - `verify-event-screens.yaml` — creates an event, opens its detail, visits My Events, and captures all three flat-design screens.
 
 ## Notes

@@ -1,0 +1,271 @@
+appId: com.join.app
+---
+- clearKeychain
+- launchApp:
+    clearState: true
+    permissions:
+      location: inuse
+- runScript: scripts/generate-participation-test-data.js
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Tekrar Dene"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "login-register-link"
+    timeout: 30000
+
+# Organizer account
+- tapOn:
+    id: "login-register-link"
+- extendedWaitUntil:
+    visible:
+      id: "register-name-input"
+    timeout: 10000
+- tapOn:
+    id: "register-name-input"
+- inputText: "${output.organizerName}"
+- tapOn:
+    id: "register-email-input"
+- inputText: "${output.organizerEmail}"
+- tapOn:
+    id: "register-phone-input"
+- inputText: "${output.organizerPhone}"
+- hideKeyboard
+- tapOn:
+    id: "register-password-input"
+- inputText: "${output.organizerPassword}"
+- tapOn:
+    id: "register-confirm-password-input"
+- inputText: "${output.organizerPassword}"
+- pressKey: Enter
+- tapOn:
+    id: "register-submit-button"
+- assertVisible: "Doğrulama Kodu"
+- runScript: scripts/fetch-otp.js
+- tapOn:
+    id: "otp-code-input"
+- inputText: "${output.otpCode}"
+- pressKey: Enter
+- tapOn:
+    id: "otp-verify-button"
+- tapOn:
+    id: "onboarding-skip"
+- extendedWaitUntil:
+    visible:
+      id: "discover-heading"
+    timeout: 15000
+
+# Approval event
+- tapOn:
+    id: "create-event-fab"
+- tapOn:
+    id: "event-title-input"
+- inputText: "${output.eventTitle}"
+- pressKey: Enter
+- tapOn:
+    id: "category-picker-row"
+- tapOn:
+    id: "category-card-Basketbol"
+- tapOn:
+    id: "category-save-button"
+- tapOn:
+    id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
+      id: "location-map-picker"
+    timeout: 10000
+- tapOn:
+    id: "location-map-picker"
+- scrollUntilVisible:
+    element:
+      id: "event-location-label-input"
+    direction: DOWN
+- tapOn:
+    id: "event-location-label-input"
+- eraseText
+- inputText: "Moda Sahili Onay Testi"
+- pressKey: Enter
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
+      id: "event-datetime-step"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
+      id: "join-type-approval-button"
+    timeout: 15000
+- tapOn:
+    id: "join-type-approval-button"
+- runFlow:
+    when:
+      visible:
+        id: "create-event-continue-button"
+    commands:
+      - tapOn:
+          id: "create-event-continue-button"
+- extendedWaitUntil:
+    visible:
+      id: "gender-chip-all"
+    timeout: 10000
+- tapOn:
+    id: "create-event-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: "discover-heading"
+    timeout: 15000
+
+# Sign out organizer and register participant
+- tapOn:
+    id: "tab-profil"
+- scrollUntilVisible:
+    element:
+      id: "profile-logout-row"
+    direction: DOWN
+- tapOn:
+    id: "profile-logout-row"
+- tapOn:
+    id: "profile-logout-confirm-button"
+- tapOn:
+    id: "login-register-link"
+- extendedWaitUntil:
+    visible:
+      id: "register-name-input"
+    timeout: 10000
+- tapOn:
+    id: "register-name-input"
+- inputText: "${output.participantName}"
+- tapOn:
+    id: "register-email-input"
+- inputText: "${output.participantEmail}"
+- tapOn:
+    id: "register-phone-input"
+- inputText: "${output.participantPhone}"
+- hideKeyboard
+- tapOn:
+    id: "register-password-input"
+- inputText: "${output.participantPassword}"
+- tapOn:
+    id: "register-confirm-password-input"
+- inputText: "${output.participantPassword}"
+- pressKey: Enter
+- tapOn:
+    id: "register-submit-button"
+- runScript: scripts/use-participant-otp-target.js
+- runScript: scripts/fetch-otp.js
+- tapOn:
+    id: "otp-code-input"
+- inputText: "${output.otpCode}"
+- pressKey: Enter
+- tapOn:
+    id: "otp-verify-button"
+- tapOn:
+    id: "onboarding-skip"
+- extendedWaitUntil:
+    visible:
+      id: "discover-heading"
+    timeout: 15000
+
+# Participant finds event and requests approval
+- tapOn:
+    id: "discover-search"
+- inputText: "${output.eventTitle}"
+- pressKey: Enter
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "${output.eventTitle}"
+    timeout: 15000
+- tapOn:
+    id: "event-list-row-0"
+- extendedWaitUntil:
+    visible:
+      id: "request-participation-button"
+    timeout: 15000
+- tapOn:
+    id: "request-participation-button"
+- extendedWaitUntil:
+    visible: "İsteğin gönderildi, onay bekleniyor"
+    timeout: 15000
+
+# Organizer logs back in and approves
+- tapOn:
+    id: "event-back-button"
+- tapOn:
+    id: "tab-profil"
+- scrollUntilVisible:
+    element:
+      id: "profile-logout-row"
+    direction: DOWN
+- tapOn:
+    id: "profile-logout-row"
+- tapOn:
+    id: "profile-logout-confirm-button"
+- tapOn:
+    id: "login-email-input"
+- inputText: "${output.organizerEmail}"
+- tapOn:
+    id: "login-password-input"
+- inputText: "${output.organizerPassword}"
+- pressKey: Enter
+- tapOn:
+    id: "login-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: "discover-heading"
+    timeout: 15000
+- tapOn:
+    id: "tab-etkinliklerim"
+- extendedWaitUntil:
+    visible: "${output.eventTitle}"
+    timeout: 15000
+- tapOn: "${output.eventTitle}"
+- scrollUntilVisible:
+    element: "Onayla"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Onayla"
+- extendedWaitUntil:
+    visible: "Bekleyen istek yok"
+    timeout: 15000
+
+# Participant logs back in and sees approved status
+- tapOn:
+    id: "event-back-button"
+- tapOn:
+    id: "tab-profil"
+- scrollUntilVisible:
+    element:
+      id: "profile-logout-row"
+    direction: DOWN
+- tapOn:
+    id: "profile-logout-row"
+- tapOn:
+    id: "profile-logout-confirm-button"
+- tapOn:
+    id: "login-email-input"
+- inputText: "${output.participantEmail}"
+- tapOn:
+    id: "login-password-input"
+- inputText: "${output.participantPassword}"
+- pressKey: Enter
+- tapOn:
+    id: "login-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: "discover-heading"
+    timeout: 15000
+- tapOn:
+    id: "tab-etkinliklerim"
+- extendedWaitUntil:
+    visible: "Onaylandı"
+    timeout: 15000
+- assertVisible: "${output.eventTitle}"

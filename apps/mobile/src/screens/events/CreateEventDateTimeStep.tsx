@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../../theme';
-import { stepStyles } from './createEventStepStyles';
+import { StyleSheet, Text, View } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { colors } from "../../theme";
+import { stepStyles } from "./createEventStepStyles";
+import StepSection from "./StepSection";
 
 interface CreateEventDateTimeStepProps {
   date: Date;
@@ -12,73 +11,79 @@ interface CreateEventDateTimeStepProps {
   onTimeChange: (value: Date) => void;
 }
 
-export default function CreateEventDateTimeStep({ date, onDateChange, time, onTimeChange }: CreateEventDateTimeStepProps) {
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
+export default function CreateEventDateTimeStep({
+  date,
+  onDateChange,
+  time,
+  onTimeChange,
+}: CreateEventDateTimeStepProps) {
   return (
-    <View style={stepStyles.container}>
-      <Text style={stepStyles.stepTitle}>Tarih & Saat</Text>
-      <Text style={stepStyles.stepSubtitle}>Etkinliğin ne zaman başlayacağını seç</Text>
+    <View testID="event-datetime-step" style={stepStyles.container}>
+      <Text style={stepStyles.stepTitle}>Takvimde{"\n"}yer açalım.</Text>
+      <Text style={stepStyles.stepSubtitle}>
+        Günü ve saati belirle, plan netleşsin.
+      </Text>
 
-      <Text style={stepStyles.fieldLabel}>Tarih</Text>
-      <Pressable testID="event-date-row" onPress={() => setShowDatePicker(true)} style={styles.row}>
-        <Text style={styles.rowValue}>{date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
-        <MaterialIcons name="calendar-today" size={20} color={colors.textMuted} />
-      </Pressable>
+      <StepSection
+        label="Tarih"
+        icon="calendar-today"
+        trailing={date.toLocaleDateString("tr-TR", {
+          day: "numeric",
+          month: "long",
+        })}
+      >
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="inline"
+          minimumDate={new Date()}
+          onValueChange={(_, selected) => {
+            if (selected) onDateChange(selected);
+          }}
+          accentColor={colors.primary}
+          themeVariant="light"
+          locale="tr-TR"
+          style={styles.calendar}
+        />
+      </StepSection>
 
-      <Text style={stepStyles.fieldLabel}>Saat</Text>
-      <Pressable testID="event-time-row" onPress={() => setShowTimePicker(true)} style={styles.row}>
-        <Text style={styles.rowValue}>{time.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</Text>
-        <MaterialIcons name="schedule" size={20} color={colors.textMuted} />
-      </Pressable>
-
-      {showDatePicker ? (
-        <View style={styles.pickerCard}>
-          <DateTimePicker
-            value={date}
-            mode="date"
-            minimumDate={new Date()}
-            onChange={(_, selected) => {
-              setShowDatePicker(false);
-              if (selected) onDateChange(selected);
-            }}
-          />
-        </View>
-      ) : null}
-      {showTimePicker ? (
-        <View style={styles.pickerCard}>
+      <StepSection
+        label="Saat"
+        icon="schedule"
+        trailing={time.toLocaleTimeString("tr-TR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      >
+        <View style={styles.timeRow}>
           <DateTimePicker
             value={time}
             mode="time"
-            onChange={(_, selected) => {
-              setShowTimePicker(false);
+            display="spinner"
+            themeVariant="light"
+            locale="tr-TR"
+            is24Hour
+            textColor={colors.textPrimary}
+            onValueChange={(_, selected) => {
               if (selected) onTimeChange(selected);
             }}
+            style={styles.timePicker}
           />
         </View>
-      ) : null}
+      </StepSection>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+  calendar: {
+    height: 340,
   },
-  rowValue: {
-    ...typography.bodyLg,
-    color: colors.textPrimary,
+  timeRow: {
+    alignItems: "center",
   },
-  pickerCard: {
-    padding: spacing.xs,
-    alignItems: 'center',
+  timePicker: {
+    height: 140,
+    width: "100%",
   },
 });

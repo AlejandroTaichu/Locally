@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native';
-import { colors, radii, spacing, typography } from '../../theme';
+import { StyleSheet } from "react-native";
+import { colors, spacing, typography } from "../../theme";
 
 // CreateEventScreen'in her adım bileşeni (CreateEvent*Step.tsx) arasında paylaşılan stiller.
 export const stepStyles = StyleSheet.create({
@@ -7,42 +7,49 @@ export const stepStyles = StyleSheet.create({
     gap: spacing.sm,
   },
   stepTitle: {
-    ...typography.headlineMd,
+    fontFamily: "DMSans_700Bold",
+    fontSize: 32,
+    lineHeight: 37,
+    letterSpacing: -1.1,
     color: colors.textPrimary,
   },
   stepSubtitle: {
     ...typography.bodyMd,
     color: colors.textMuted,
-    marginBottom: spacing.xs,
+    marginTop: -6,
+    lineHeight: 23,
+    marginBottom: spacing.sm,
   },
   fieldLabel: {
-    ...typography.labelCaps,
-    color: colors.textMuted,
+    ...typography.bodyMd,
+    fontFamily: "DMSans_600SemiBold",
+    color: colors.textSecondary,
     marginTop: spacing.xs,
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+    borderRadius: 16,
+    minHeight: 56,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surfaceContainer,
     color: colors.textPrimary,
     ...typography.bodyLg,
   },
   textarea: {
-    minHeight: 96,
+    minHeight: 108,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.xs,
   },
   hint: {
-    ...typography.labelCaps,
+    ...typography.bodyMd,
+    fontSize: 13,
+    lineHeight: 19,
     color: colors.textMuted,
-    textTransform: 'none',
+    textTransform: "none",
     letterSpacing: 0,
   },
 });

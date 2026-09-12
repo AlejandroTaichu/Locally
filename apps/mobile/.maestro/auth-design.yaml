@@ -1,0 +1,63 @@
+# Local test simulator only. Signs out the current test session, does not send OTP or register.
+# Existing OS location grant must be retained. Never clearState / clearKeychain here.
+appId: com.join.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "tab-profil|login-email-input|region-retry-button"
+    timeout: 60000
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible:
+        id: "tab-profil"
+    commands:
+      - tapOn:
+          id: "tab-profil"
+      - scrollUntilVisible:
+          element:
+            id: "profile-logout-row"
+          direction: DOWN
+          centerElement: true
+      - tapOn:
+          id: "profile-logout-row"
+      - tapOn:
+          id: "profile-logout-confirm-button"
+- extendedWaitUntil:
+    visible:
+      id: "login-email-input"
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: auth-login
+- tapOn:
+    id: "login-submit-button"
+- assertVisible: "E-posta ve şifreni gir"
+- scrollUntilVisible:
+    element:
+      id: "login-register-link"
+    direction: DOWN
+- tapOn:
+    id: "login-register-link"
+- assertVisible:
+    id: "register-name-input"
+- waitForAnimationToEnd
+- takeScreenshot: auth-register
+- scrollUntilVisible:
+    element:
+      id: "register-submit-button"
+    direction: DOWN
+- tapOn:
+    id: "register-submit-button"
+- assertVisible: "Tüm alanları doldur"
+- tapOn:
+    id: "auth-back-button"
+- assertVisible:
+    id: "login-email-input"
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email-input"
+    timeout: 30000
+- assertNotVisible:
+    id: "region-open-settings-button"

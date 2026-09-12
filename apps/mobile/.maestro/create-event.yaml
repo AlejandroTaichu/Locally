@@ -30,24 +30,36 @@ appId: com.join.app
     id: "create-event-continue-button"
 - extendedWaitUntil:
     visible:
-      id: "event-location-label-input"
+      id: "location-map-picker"
     timeout: 10000
 - tapOn:
+    id: "location-map-picker"
+- scrollUntilVisible:
+    element:
+      id: "event-location-label-input"
+    direction: DOWN
+- tapOn:
     id: "event-location-label-input"
+- eraseText
 - inputText: "Moda Sahili Basketbol Sahası"
 - pressKey: Enter
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
 - tapOn:
     id: "create-event-continue-button"
 - extendedWaitUntil:
     visible:
-      id: "event-date-row"
+      id: "event-datetime-step"
     timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn:
     id: "create-event-continue-button"
 - extendedWaitUntil:
     visible:
       id: "join-type-instant-button"
-    timeout: 10000
+    timeout: 15000
 - tapOn:
     id: "join-type-instant-button"
 - tapOn:
@@ -57,5 +69,11 @@ appId: com.join.app
       id: "create-event-submit-button"
     timeout: 10000
 - tapOn:
+    id: "min-age-input"
+- eraseText
+- inputText: "18"
+- tapOn: "Yaş aralığı"
+- tapOn:
     id: "create-event-submit-button"
-- assertVisible: "Yakınındaki Aktiviteleri Keşfet"
+- assertVisible:
+    id: "discover-heading"

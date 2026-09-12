@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors, radii, spacing, typography } from '../theme';
 
 interface EmptyStateProps {
@@ -9,8 +10,7 @@ interface EmptyStateProps {
 export default function EmptyState({ title, subtitle }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      {/* Illustration slot — matches OnboardingCard's placeholder until brand colors are finalized. */}
-      <View style={styles.illustrationSlot} />
+      <View style={styles.illustrationSlot}><MaterialIcons name="explore" size={34} color={colors.textSecondary} /></View>
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
@@ -26,18 +26,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   illustrationSlot: {
-    width: 120,
-    height: 120,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    width: 72,
+    height: 72,
+    borderRadius: radii.avatar,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceVariant,
     marginBottom: spacing.sm,
   },
   title: {
     ...typography.bodyLg,
-    color: colors.textSecondary,
+    fontFamily: 'DMSans_700Bold',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   subtitle: {

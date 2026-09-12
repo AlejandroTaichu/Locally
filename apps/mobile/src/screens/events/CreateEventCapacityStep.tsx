@@ -1,8 +1,10 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import Button from '../../components/Button';
-import type { JoinType } from '../../api/events';
-import { colors, spacing } from '../../theme';
-import { stepStyles } from './createEventStepStyles';
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import Stepper from "../../components/Stepper";
+import type { JoinType } from "../../api/events";
+import { colors, radii, spacing, typography } from "../../theme";
+import { stepStyles } from "./createEventStepStyles";
+import StepSection from "./StepSection";
 
 interface CreateEventCapacityStepProps {
   capacityText: string;
@@ -13,6 +15,26 @@ interface CreateEventCapacityStepProps {
   onJoinTypeChange: (value: JoinType) => void;
 }
 
+const JOIN_TYPE_OPTIONS: {
+  value: JoinType;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  title: string;
+  caption: string;
+}[] = [
+  {
+    value: "instant",
+    icon: "flash-on",
+    title: "Direkt Katılım",
+    caption: "Katılımcılar onay beklemeden doğrudan yer ayırtabilir.",
+  },
+  {
+    value: "approval",
+    icon: "verified-user",
+    title: "Onaylı Katılım",
+    caption: "Başvuranları sen incelersin, katılımı sen onaylarsın.",
+  },
+];
+
 export default function CreateEventCapacityStep({
   capacityText,
   onCapacityTextChange,
@@ -21,50 +43,139 @@ export default function CreateEventCapacityStep({
   joinType,
   onJoinTypeChange,
 }: CreateEventCapacityStepProps) {
+  const parsedCapacity = Number.parseInt(capacityText, 10);
+  const capacity = Number.isFinite(parsedCapacity)
+    ? Math.min(maxCapacity, Math.max(minCapacity, parsedCapacity))
+    : minCapacity;
+
+  function handleStepperChange(next: number) {
+    onCapacityTextChange(String(next));
+  }
+
   return (
     <View style={stepStyles.container}>
-      <Text style={stepStyles.stepTitle}>Kapasite & Katılım</Text>
-      <Text style={stepStyles.stepSubtitle}>Kaç kişi katılabilir ve katılım nasıl onaylansın</Text>
+      <Text style={stepStyles.stepTitle}>Kaç kişilik{"\n"}bir plan?</Text>
+      <Text style={stepStyles.stepSubtitle}>
+        Küçük bir grup ya da kalabalık bir buluşma. Karar senin.
+      </Text>
 
-      <Text style={stepStyles.fieldLabel}>Kontenjan</Text>
-      <TextInput
-        testID="capacity-input"
-        style={stepStyles.input}
-        placeholder={`${minCapacity}-${maxCapacity} arası`}
-        placeholderTextColor={colors.textMuted}
-        keyboardType="number-pad"
-        value={capacityText}
-        onChangeText={onCapacityTextChange}
-      />
+      <StepSection label="Kontenjan" icon="groups">
+        <View style={styles.capacityRow}>
+          <Text style={styles.capacityLabel}>KATILIMCI SAYISI</Text>
+          <Stepper
+            testID="capacity-input"
+            value={capacity}
+            onChange={handleStepperChange}
+            min={minCapacity}
+            max={maxCapacity}
+          />
+          <Text style={stepStyles.hint}>
+            {minCapacity}–{maxCapacity} kişi arasında seçebilirsin.
+          </Text>
+        </View>
+      </StepSection>
 
-      <Text style={stepStyles.fieldLabel}>Katılım Tipi</Text>
-      <View style={styles.row}>
-        <Button
-          testID="join-type-instant-button"
-          variant={joinType === 'instant' ? 'primary' : 'outline'}
-          title={joinType === 'instant' ? 'Direkt Katılım ✓' : 'Direkt Katılım'}
-          onPress={() => onJoinTypeChange('instant')}
-          style={styles.flex}
-        />
-        <Button
-          testID="join-type-approval-button"
-          variant={joinType === 'approval' ? 'primary' : 'outline'}
-          title={joinType === 'approval' ? 'Onaylı Katılım ✓' : 'Onaylı Katılım'}
-          onPress={() => onJoinTypeChange('approval')}
-          style={styles.flex}
-        />
-      </View>
+      <StepSection label="Katılım Tipi" icon="how-to-reg">
+        {JOIN_TYPE_OPTIONS.map((option) => {
+          const selected = joinType === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              testID={`join-type-${option.value}-button`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+              onPress={() => onJoinTypeChange(option.value)}
+              style={[styles.optionRow, selected && styles.optionRowSelected]}
+            >
+              <View
+                style={[
+                  styles.optionIcon,
+                  selected && styles.optionIconSelected,
+                ]}
+              >
+                <MaterialIcons
+                  name={option.icon}
+                  size={20}
+                  color={selected ? colors.onPrimary : colors.textSecondary}
+                />
+              </View>
+              <View style={styles.optionText}>
+                <Text
+                  style={[
+                    styles.optionTitle,
+                    selected && styles.optionTitleSelected,
+                  ]}
+                >
+                  {option.title}
+                </Text>
+                <Text style={styles.optionCaption}>{option.caption}</Text>
+              </View>
+              <MaterialIcons
+                name={selected ? "check-circle" : "radio-button-unchecked"}
+                size={20}
+                color={selected ? colors.textPrimary : colors.textMuted}
+              />
+            </Pressable>
+          );
+        })}
+      </StepSection>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.xs,
+  capacityRow: {
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+    gap: 20,
+    borderRadius: 22,
+    backgroundColor: colors.surfaceVariant,
   },
-  flex: {
+  capacityLabel: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: colors.textSecondary,
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.card,
+    padding: spacing.md,
+  },
+  optionRowSelected: {
+    borderColor: colors.textPrimary,
+    backgroundColor: colors.surfaceVariant,
+  },
+  optionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.avatar,
+    backgroundColor: colors.surfaceContainer,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionIconSelected: {
+    backgroundColor: colors.textPrimary,
+  },
+  optionText: {
     flex: 1,
+    gap: 2,
+  },
+  optionTitle: {
+    ...typography.bodyLg,
+    color: colors.textPrimary,
+    fontWeight: "700",
+    fontFamily: "DMSans_700Bold",
+  },
+  optionTitleSelected: {
+    color: colors.textPrimary,
+  },
+  optionCaption: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
   },
 });

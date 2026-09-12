@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../../theme';
-import { stepStyles } from './createEventStepStyles';
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { colors, spacing, typography } from "../../theme";
+import { stepStyles } from "./createEventStepStyles";
+import StepSection from "./StepSection";
+import { CATEGORY_EMOJI } from "../../constants/eventCategories";
 
 interface CreateEventBasicsStepProps {
   title: string;
@@ -22,62 +24,83 @@ export default function CreateEventBasicsStep({
 }: CreateEventBasicsStepProps) {
   return (
     <View style={stepStyles.container}>
-      <Text style={stepStyles.stepTitle}>Temel Bilgiler</Text>
-      <Text style={stepStyles.stepSubtitle}>Etkinliğinin başlığını ve açıklamasını gir</Text>
+      <Text style={stepStyles.stepTitle}>İyi bir planla{"\n"}başlayalım.</Text>
+      <Text style={stepStyles.stepSubtitle}>
+        Aklındaki buluşmaya bir isim ver. Gerisi birlikte gelir.
+      </Text>
 
-      <Text style={stepStyles.fieldLabel}>Başlık</Text>
-      <TextInput
-        testID="event-title-input"
-        style={stepStyles.input}
-        placeholder="Örn. 2'ye 2 Basketbol"
-        placeholderTextColor={colors.textMuted}
-        value={title}
-        onChangeText={onTitleChange}
-      />
+      <StepSection label="Etkinliğin adı" icon="edit-note">
+        <TextInput
+          testID="event-title-input"
+          accessibilityLabel="Etkinliğin adı"
+          style={stepStyles.input}
+          placeholder="Örn. 2'ye 2 Basketbol"
+          placeholderTextColor={colors.textMuted}
+          value={title}
+          onChangeText={onTitleChange}
+        />
+      </StepSection>
+      <StepSection label="Plandan biraz bahset" trailing="İsteğe bağlı">
+        <TextInput
+          testID="event-description-input"
+          accessibilityLabel="Etkinlik açıklaması"
+          style={[stepStyles.input, stepStyles.textarea]}
+          placeholder="Neler yapacaksınız? Yanımızda ne getirelim?"
+          placeholderTextColor={colors.textMuted}
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
+          value={description}
+          onChangeText={onDescriptionChange}
+        />
+      </StepSection>
 
-      <Text style={stepStyles.fieldLabel}>Açıklama</Text>
-      <TextInput
-        style={[stepStyles.input, stepStyles.textarea]}
-        placeholder="Etkinlikle ilgili detaylar (opsiyonel)"
-        placeholderTextColor={colors.textMuted}
-        multiline
-        numberOfLines={4}
-        textAlignVertical="top"
-        value={description}
-        onChangeText={onDescriptionChange}
-      />
-
-      <Pressable testID="category-picker-row" onPress={onOpenCategory} style={styles.row}>
-        <View style={styles.rowText}>
-          <Text style={stepStyles.fieldLabel}>Kategori</Text>
-          <Text style={category ? styles.rowValue : styles.rowPlaceholder}>{category ?? 'Kategori seç'}</Text>
-        </View>
-        <MaterialIcons name="chevron-right" size={22} color={colors.textMuted} />
-      </Pressable>
+      <StepSection label="Ne yapıyoruz?" icon="category">
+        <Pressable
+          accessibilityRole="button"
+          testID="category-picker-row"
+          onPress={onOpenCategory}
+          style={styles.row}
+        >
+          <Text style={styles.emoji}>
+            {category ? CATEGORY_EMOJI[category] : "✨"}
+          </Text>
+          <Text style={category ? styles.rowValue : styles.rowPlaceholder}>
+            {category ?? "Bir kategori seç"}
+          </Text>
+          <MaterialIcons
+            name="chevron-right"
+            size={22}
+            color={colors.textMuted}
+          />
+        </Pressable>
+      </StepSection>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  rowText: {
-    gap: 2,
+    minHeight: 64,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceVariant,
+    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   rowValue: {
+    flex: 1,
     ...typography.bodyLg,
     color: colors.textPrimary,
+    fontWeight: "700",
+    fontFamily: "DMSans_700Bold",
   },
   rowPlaceholder: {
+    flex: 1,
     ...typography.bodyLg,
     color: colors.textMuted,
   },
+  emoji: { fontSize: 24 },
 });

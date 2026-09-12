@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, KeyboardAvoidingView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../navigation/types';
@@ -8,9 +9,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { requestEmailChange, requestPhoneChange, updateMe, verifyEmailChange, verifyPhoneChange } from '../../api/users';
 import { ApiError } from '../../api/client';
 import Button from '../../components/Button';
-import Chip from '../../components/Chip';
 import Stepper from '../../components/Stepper';
-import { colors, radii, spacing, typography } from '../../theme';
+import { colors, spacing, typography } from '../../theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'EditPersonalInfo'>;
 
@@ -22,7 +22,8 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'male', label: 'Erkek' },
 ];
 
-export default function EditPersonalInfoScreen({}: Props) {
+export default function EditPersonalInfoScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { user, token, refreshUser } = useAuth();
 
   const [editingField, setEditingField] = useState<FieldKey | null>(null);
@@ -157,8 +158,27 @@ export default function EditPersonalInfoScreen({}: Props) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <EditableRow
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Geri"
+          testID="edit-personal-info-back"
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={22} color={colors.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Kişisel bilgiler</Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+      >
+        <EditableRow
           label="Ad Soyad"
           value={user.displayName}
           field="displayName"
@@ -180,7 +200,6 @@ export default function EditPersonalInfoScreen({}: Props) {
           />
         </EditableRow>
 
-        <View style={styles.divider} />
         <EditableRow
           label="Kullanıcı Adı"
           value={user.username ? `@${user.username}` : '—'}
@@ -209,7 +228,6 @@ export default function EditPersonalInfoScreen({}: Props) {
           </View>
         </EditableRow>
 
-        <View style={styles.divider} />
         <EditableRow
           label="E-posta"
           value={user.email}
@@ -248,7 +266,6 @@ export default function EditPersonalInfoScreen({}: Props) {
           )}
         </EditableRow>
 
-        <View style={styles.divider} />
         <EditableRow
           label="Telefon"
           value={user.phone}
@@ -285,7 +302,6 @@ export default function EditPersonalInfoScreen({}: Props) {
           )}
         </EditableRow>
 
-        <View style={styles.divider} />
         <EditableRow
           label="Yaş"
           value={user.age != null ? String(user.age) : '—'}
@@ -301,7 +317,6 @@ export default function EditPersonalInfoScreen({}: Props) {
           <Stepper testID="profile-age-stepper" value={ageDraft} onChange={setAgeDraft} min={13} max={99} />
         </EditableRow>
 
-        <View style={styles.divider} />
         <EditableRow
           label="Cinsiyet"
           value={user.gender ? (user.gender === 'female' ? 'Kadın' : 'Erkek') : '—'}
@@ -315,20 +330,24 @@ export default function EditPersonalInfoScreen({}: Props) {
           saving={saving}
           error={fieldError}
         >
-          <View style={styles.chipRow}>
+          <View style={styles.pillRow}>
             {GENDER_OPTIONS.map((option) => (
-              <Chip
+              <Pressable
                 key={option.value}
                 testID={`profile-gender-chip-${option.value}`}
-                label={option.label}
-                selected={genderDraft === option.value}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: genderDraft === option.value }}
+                style={[styles.pill, genderDraft === option.value && styles.pillSelected]}
                 onPress={() => setGenderDraft(genderDraft === option.value ? null : option.value)}
-              />
+              >
+                <Text style={[styles.pillLabel, genderDraft === option.value && styles.pillLabelSelected]}>
+                  {option.label}
+                </Text>
+              </Pressable>
             ))}
           </View>
         </EditableRow>
 
-        <View style={styles.divider} />
         <EditableRow
           label="Bio"
           value={user.bio ?? '—'}
@@ -340,6 +359,7 @@ export default function EditPersonalInfoScreen({}: Props) {
           primaryLabel="Kaydet"
           saving={saving}
           error={fieldError}
+          isLast
         >
           <TextInput
             testID="profile-input-bio"
@@ -352,7 +372,8 @@ export default function EditPersonalInfoScreen({}: Props) {
             maxLength={280}
           />
         </EditableRow>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -369,6 +390,7 @@ interface EditableRowProps {
   saving: boolean;
   error: string | null;
   children: ReactNode;
+  isLast?: boolean;
 }
 
 function EditableRow({
@@ -384,20 +406,34 @@ function EditableRow({
   saving,
   error,
   children,
+  isLast,
 }: EditableRowProps) {
   const isEditing = editingField === field;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, !isLast && styles.rowDivider]}>
       <View style={styles.rowHeader}>
         <Text style={styles.label}>{label}</Text>
         {isEditing ? (
-          <Pressable testID={`profile-cancel-${field}`} onPress={onCancel} hitSlop={8} disabled={saving}>
+          <Pressable
+            testID={`profile-cancel-${field}`}
+            accessibilityRole="button"
+            accessibilityLabel="Vazgeç"
+            onPress={onCancel}
+            disabled={saving}
+            style={styles.rowIconButton}
+          >
             <MaterialIcons name="close" size={18} color={colors.textMuted} />
           </Pressable>
         ) : (
-          <Pressable testID={`profile-edit-${field}`} onPress={onEdit} hitSlop={8}>
-            <MaterialIcons name="edit" size={16} color={colors.textMuted} />
+          <Pressable
+            testID={`profile-edit-${field}`}
+            accessibilityRole="button"
+            accessibilityLabel={`${label} — düzenle`}
+            onPress={onEdit}
+            style={styles.rowIconButton}
+          >
+            <MaterialIcons name="edit" size={16} color={colors.textSecondary} />
           </Pressable>
         )}
       </View>
@@ -405,7 +441,11 @@ function EditableRow({
       {isEditing ? (
         <View style={styles.rowEditContent}>
           {children}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {error}
+            </Text>
+          ) : null}
           <Button
             testID={`profile-save-${field}`}
             title={saving ? '...' : primaryLabel}
@@ -421,26 +461,58 @@ function EditableRow({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: spacing.md,
-    gap: spacing.xs,
+  flex: {
+    flex: 1,
     backgroundColor: colors.background,
   },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    ...typography.headlineMd,
+    color: colors.textPrimary,
+  },
+  container: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
   row: {
-    gap: 2,
+    paddingVertical: 15,
+    gap: 8,
+  },
+  rowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   rowHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  rowEditContent: {
-    gap: spacing.xs,
-    paddingTop: 2,
+  rowIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceContainer,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
+  rowEditContent: {
+    gap: spacing.sm,
+    paddingTop: 4,
   },
   label: {
     ...typography.labelCaps,
@@ -450,64 +522,83 @@ const styles = StyleSheet.create({
     ...typography.bodyLg,
     color: colors.textPrimary,
   },
-  chipRow: {
+  pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
-  textInput: {
+  pill: {
+    minHeight: 44,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.input,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
     backgroundColor: colors.surface,
+  },
+  pillSelected: {
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.textPrimary,
+  },
+  pillLabel: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  pillLabelSelected: {
+    color: colors.onPrimary,
+  },
+  textInput: {
+    minHeight: 56,
+    borderRadius: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surfaceContainer,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 16,
     color: colors.textPrimary,
-    ...typography.bodyMd,
   },
   bioInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    padding: spacing.sm,
-    minHeight: 80,
+    minHeight: 100,
+    borderRadius: 16,
+    padding: spacing.md,
     textAlignVertical: 'top',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 16,
     color: colors.textPrimary,
-    ...typography.bodyMd,
   },
   codeInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+    minHeight: 56,
+    borderRadius: 16,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surfaceContainer,
     textAlign: 'center',
+    fontFamily: 'DMSans_700Bold',
     fontSize: 20,
-    fontWeight: '700',
     letterSpacing: 6,
     color: colors.textPrimary,
   },
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.sm,
+    minHeight: 56,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceContainer,
+    paddingHorizontal: spacing.md,
   },
   usernamePrefix: {
-    ...typography.bodyMd,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 16,
     color: colors.textMuted,
   },
   usernameInput: {
     flex: 1,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     paddingHorizontal: 4,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 16,
     color: colors.textPrimary,
-    ...typography.bodyMd,
   },
   error: {
     color: colors.error,

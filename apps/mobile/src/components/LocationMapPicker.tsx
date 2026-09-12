@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
-import type { MapPressEvent, Region } from 'react-native-maps';
+import type { MapPressEvent, MarkerDragStartEndEvent, Region } from 'react-native-maps';
 import Button from './Button';
 import { colors, radii, spacing, typography } from '../theme';
 import type { CurrentLocation } from '../location/current-location';
@@ -46,24 +46,34 @@ export default function LocationMapPicker({ location, onLocationChange, onRecent
     onLocationChange({ lat: latitude, lng: longitude });
   }
 
+  function handleMarkerDragEnd(event: MarkerDragStartEndEvent) {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    onLocationChange({ lat: latitude, lng: longitude });
+  }
+
   return (
     <View>
       <View style={styles.mapContainer}>
         <MapView
+          testID="location-map-picker"
           ref={mapRef}
           style={styles.map}
           provider={PROVIDER_DEFAULT}
           initialRegion={regionFor(location)}
-          scrollEnabled={false}
-          zoomEnabled={false}
+          scrollEnabled
+          zoomEnabled
           pitchEnabled={false}
           rotateEnabled={false}
           onPress={handlePress}
         >
-          <Marker coordinate={{ latitude: location.lat, longitude: location.lng }} />
+          <Marker
+            coordinate={{ latitude: location.lat, longitude: location.lng }}
+            draggable
+            onDragEnd={handleMarkerDragEnd}
+          />
         </MapView>
       </View>
-      <Text style={styles.hint}>Haritada dokunarak konum seç</Text>
+      <Text style={styles.hint}>Haritayı gez, istediğin noktaya dokun veya pini sürükle</Text>
       <Button
         testID="location-recenter-button"
         variant="outline"

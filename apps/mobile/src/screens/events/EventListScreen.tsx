@@ -1,191 +1,224 @@
-import { useCallback, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { MaterialIcons } from '@expo/vector-icons';
-import type { AppStackParamList, AppTabParamList } from '../../navigation/types';
-import { useAuth } from '../../auth/AuthContext';
-import { listEvents } from '../../api/events';
-import type { Event } from '../../api/events';
-import { getPendingRating, submitRating } from '../../api/participations';
-import type { PendingRating } from '../../api/participations';
-import { startTrial } from '../../api/users';
-import { getCurrentLocation } from '../../location/current-location';
-import CategoryPill from '../../components/CategoryPill';
-import EmptyState from '../../components/EmptyState';
-import HeaderIconButton from '../../components/HeaderIconButton';
-import RatingModal from '../../components/RatingModal';
-import TrialOfferModal from '../../components/TrialOfferModal';
+import { useCallback, useLayoutEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { CompositeScreenProps } from "@react-navigation/native";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { MaterialIcons } from "@expo/vector-icons";
+import type {
+  AppStackParamList,
+  AppTabParamList,
+} from "../../navigation/types";
+import { useAuth } from "../../auth/AuthContext";
+import { listEvents } from "../../api/events";
+import type { Event } from "../../api/events";
+import { getPendingRating, submitRating } from "../../api/participations";
+import type { PendingRating } from "../../api/participations";
+import { startTrial } from "../../api/users";
+import { getCurrentLocation } from "../../location/current-location";
+import CategoryPill from "../../components/CategoryPill";
+import EmptyState from "../../components/EmptyState";
+import EventArtwork from "../../components/EventArtwork";
+import Button from "../../components/Button";
+import RatingModal from "../../components/RatingModal";
+import TrialOfferModal from "../../components/TrialOfferModal";
 import {
   ALL_CATEGORIES_EMOJI,
   CATEGORY_EMOJI,
-  CATEGORY_ICONS,
-  DEFAULT_CATEGORY_ICON,
   EVENT_CATEGORIES,
-} from '../../constants/eventCategories';
-import { formatEventWhen, isEventFillingFast } from '../../utils/events';
-import { colors, radii, spacing, typography } from '../../theme';
-import { TAB_BAR_HEIGHT } from '../../navigation/PillTabBar';
+} from "../../constants/eventCategories";
+import { formatEventWhen, isEventFillingFast } from "../../utils/events";
+import { colors, typography } from "../../theme";
+import { TAB_BAR_HEIGHT } from "../../navigation/PillTabBar";
 
 type Props = CompositeScreenProps<
-  BottomTabScreenProps<AppTabParamList, 'KesfetTab'>,
+  BottomTabScreenProps<AppTabParamList, "KesfetTab">,
   NativeStackScreenProps<AppStackParamList>
 >;
 
-const FEATURED_COUNT = 5;
-const NEARBY_COUNT = 5;
-const INTEREST_COUNT = 5;
-
-function formatBadgeDate(iso: string): { day: string; month: string } {
-  const date = new Date(iso);
-  return {
-    day: date.toLocaleDateString('tr-TR', { day: '2-digit' }),
-    month: date.toLocaleDateString('tr-TR', { month: 'short' }),
-  };
+function distanceLabel(event: Event) {
+  return event.distanceKm == null
+    ? null
+    : event.distanceKm.toLocaleString("tr-TR", { maximumFractionDigits: 1 }) +
+        " km yakınında";
 }
 
-async function shareEvent(event: Event) {
-  try {
-    await Share.share({ message: `${event.title} · ${formatEventWhen(event.startsAt)} · ${event.locationLabel}` });
-  } catch {
-    // user cancelled or share sheet failed — non-fatal
-  }
-}
-
-function SectionDivider() {
-  return <View style={styles.sectionDivider} />;
-}
-
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({
+  title,
+  caption,
+}: {
+  title: string;
+  caption?: string;
+}) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionSeeAllRow}>
-        <Text style={styles.sectionSeeAll}>Tümünü Gör</Text>
-        <MaterialIcons name="north-east" size={14} color={colors.textMuted} />
-      </View>
+      {caption ? <Text style={styles.sectionCaption}>{caption}</Text> : null}
     </View>
   );
 }
 
-interface FeaturedEventCardProps {
+function EventRow({
+  event,
+  onPress,
+  testID,
+}: {
   event: Event;
-  isSaved: boolean;
-  testID: string;
   onPress: () => void;
-  onToggleSave: () => void;
-}
-
-function FeaturedEventCard({ event, isSaved, testID, onPress, onToggleSave }: FeaturedEventCardProps) {
-  const categoryIcon = CATEGORY_ICONS[event.category] ?? DEFAULT_CATEGORY_ICON;
-  const { day, month } = formatBadgeDate(event.startsAt);
-
+  testID?: string;
+}) {
   return (
     <Pressable
       testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={event.title + ", " + formatEventWhen(event.startsAt)}
       onPress={onPress}
-      style={({ pressed }) => [styles.featuredCard, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.eventRow, pressed && styles.pressed]}
     >
-      <View style={styles.featuredImage}>
-        <MaterialIcons name={categoryIcon} size={48} color={colors.primary} />
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateBadgeDay}>{day}</Text>
-          <Text style={styles.dateBadgeMonth}>{month}</Text>
-        </View>
-        <View style={styles.overlayIconRow}>
-          <Pressable
-            testID={`featured-event-save-${event.id}`}
-            onPress={onToggleSave}
-            hitSlop={8}
-            style={styles.overlayIconButton}
-          >
-            <MaterialIcons name={isSaved ? 'favorite' : 'favorite-border'} size={18} color={colors.primary} />
-          </Pressable>
-          <Pressable
-            testID={`featured-event-share-${event.id}`}
-            onPress={() => shareEvent(event)}
-            hitSlop={8}
-            style={styles.overlayIconButton}
-          >
-            <MaterialIcons name="ios-share" size={16} color={colors.textPrimary} />
-          </Pressable>
-        </View>
-        {isEventFillingFast(event) ? (
-          <View style={styles.featuredLiveBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveBadgeText}>Dolmak Üzere</Text>
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.featuredBody}>
-        <Text style={styles.featuredTitle} numberOfLines={2}>
+      <EventArtwork category={event.category} style={styles.rowArtwork} />
+      <View style={styles.rowBody}>
+        <Text style={styles.rowDate}>{formatEventWhen(event.startsAt)}</Text>
+        <Text style={styles.rowTitle} numberOfLines={2}>
           {event.title}
         </Text>
-        <Text style={styles.featuredWhen}>{formatEventWhen(event.startsAt)}</Text>
-        <View style={styles.metaRow}>
-          <MaterialIcons name="location-on" size={13} color={colors.textMuted} />
-          <Text style={styles.feedMetaText} numberOfLines={1}>
-            {event.locationLabel}
-          </Text>
-        </View>
-        <View style={styles.tagRow}>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>{event.category}</Text>
-          </View>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>Ücretsiz</Text>
-          </View>
-        </View>
+        <Text style={styles.meta} numberOfLines={1}>
+          {event.locationLabel}
+        </Text>
+        {distanceLabel(event) ? (
+          <Text style={styles.distance}>{distanceLabel(event)}</Text>
+        ) : null}
       </View>
+      <MaterialIcons name="north-east" size={19} color={colors.textSecondary} />
     </Pressable>
   );
 }
 
-interface NearbyEventCardProps {
+function FeaturedCard({
+  event,
+  width,
+  index,
+  onPress,
+}: {
   event: Event;
+  width: number;
+  index: number;
   onPress: () => void;
-}
-
-function NearbyEventCard({ event, onPress }: NearbyEventCardProps) {
-  const categoryIcon = CATEGORY_ICONS[event.category] ?? DEFAULT_CATEGORY_ICON;
-
+}) {
+  const date = new Date(event.startsAt);
+  const remaining =
+    event.capacity == null
+      ? null
+      : Math.max(0, event.capacity - event.participantCount);
+  async function share() {
+    try {
+      await Share.share({
+        message:
+          event.title +
+          " · " +
+          formatEventWhen(event.startsAt) +
+          " · " +
+          event.locationLabel,
+      });
+    } catch {
+      /* Native share can be dismissed. */
+    }
+  }
   return (
-    <Pressable
-      testID={`nearby-event-${event.id}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.nearbyCard, pressed && styles.cardPressed]}
-    >
-      <View style={styles.nearbyImage}>
-        <MaterialIcons name={categoryIcon} size={28} color={colors.primary} />
-      </View>
-      <View style={styles.nearbyBody}>
-        <Text style={styles.nearbyTitle} numberOfLines={2}>
-          {event.title}
-        </Text>
-        <Text style={styles.featuredWhen} numberOfLines={1}>
-          {formatEventWhen(event.startsAt)}
-        </Text>
-        <View style={styles.metaRow}>
-          <MaterialIcons name="location-on" size={13} color={colors.textMuted} />
-          <Text style={styles.feedMetaText} numberOfLines={1}>
-            {event.locationLabel}
+    <View style={[styles.featuredCard, { width }]}>
+      <Pressable
+        testID={"featured-event-card-" + index}
+        accessibilityRole="button"
+        accessibilityLabel={event.title + ", etkinlik detayını aç"}
+        onPress={onPress}
+        style={({ pressed }) => pressed && styles.pressed}
+      >
+        <EventArtwork
+          category={event.category}
+          style={styles.featuredArtwork}
+        />
+        <View style={styles.dateBadge}>
+          <Text style={styles.dateDay}>
+            {date.toLocaleDateString("tr-TR", { day: "2-digit" })}
           </Text>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>Ücretsiz</Text>
+          <Text style={styles.dateMonth}>
+            {date
+              .toLocaleDateString("tr-TR", { month: "short" })
+              .toLocaleUpperCase("tr-TR")}
+          </Text>
+        </View>
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>{event.category}</Text>
+        </View>
+        <View style={styles.featuredBody}>
+          <Text style={styles.rowDate}>{formatEventWhen(event.startsAt)}</Text>
+          <Text style={styles.featuredTitle} numberOfLines={2}>
+            {event.title}
+          </Text>
+          <View style={styles.inline}>
+            <MaterialIcons name="place" size={15} color={colors.textMuted} />
+            <Text style={[styles.meta, { flex: 1 }]} numberOfLines={1}>
+              {event.locationLabel}
+            </Text>
+          </View>
+          <View style={styles.cardFooter}>
+            <View style={styles.inline}>
+              <View style={styles.organizerAvatar}>
+                <Text style={styles.avatarLetter}>
+                  {event.organizer.displayName
+                    .slice(0, 1)
+                    .toLocaleUpperCase("tr-TR")}
+                </Text>
+              </View>
+              <Text style={styles.organizerName} numberOfLines={1}>
+                {event.organizer.displayName.split(" ")[0]}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.spots,
+                isEventFillingFast(event) && { color: colors.primary },
+              ]}
+            >
+              {remaining === null
+                ? event.participantCount + " kişi katılıyor"
+                : remaining === 0
+                  ? "Kontenjan doldu"
+                  : remaining + " kişilik yer var"}
+            </Text>
           </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+      <Pressable
+        testID={"featured-event-share-" + event.id}
+        accessibilityRole="button"
+        accessibilityLabel="Etkinliği paylaş"
+        onPress={share}
+        style={styles.shareButton}
+      >
+        <MaterialIcons name="ios-share" size={19} color={colors.textPrimary} />
+      </Pressable>
+    </View>
   );
 }
 
 export default function EventListScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const tabBarClearance = insets.bottom + TAB_BAR_HEIGHT + spacing.sm;
-  const fabBottom = tabBarClearance + spacing.sm;
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(350, width - 68);
+  const tabClearance = insets.bottom + TAB_BAR_HEIGHT + 28;
   const { token, user, refreshUser } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -193,22 +226,17 @@ export default function EventListScreen({ navigation }: Props) {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [savedEventIds, setSavedEventIds] = useState<Set<string>>(new Set());
-
-  const [pendingRating, setPendingRating] = useState<PendingRating | null>(null);
+  const [search, setSearch] = useState("");
+  const [pendingRating, setPendingRating] = useState<PendingRating | null>(
+    null,
+  );
   const [isRatingSubmitting, setIsRatingSubmitting] = useState(false);
   const [showTrialOffer, setShowTrialOffer] = useState(false);
   const [trialAccepted, setTrialAccepted] = useState(false);
   const [isTrialSubmitting, setIsTrialSubmitting] = useState(false);
 
   useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: () => <Text style={styles.brandTitle}>Katıl</Text>,
-      headerTitleAlign: 'center',
-      headerShadowVisible: false,
-      headerStyle: { backgroundColor: colors.background },
-      headerLeft: () => <HeaderIconButton testID="map-explore-link" icon="map" onPress={() => navigation.navigate('MapExplore')} />,
-    });
+    navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   const fetchEvents = useCallback(async () => {
@@ -216,30 +244,27 @@ export default function EventListScreen({ navigation }: Props) {
     setError(null);
     try {
       const location = await getCurrentLocation();
-      const result = await listEvents(token, { lat: location.lat, lng: location.lng });
-      setEvents(result);
+      setEvents(
+        await listEvents(token, { lat: location.lat, lng: location.lng }),
+      );
     } catch {
-      setError('Etkinlikler yüklenemedi');
+      setError(
+        "Etkinlikler yüklenemedi. Bağlantını kontrol edip tekrar deneyebilirsin.",
+      );
     }
   }, [token]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!hasLoaded) {
-        setIsLoading(true);
-      }
+      if (!hasLoaded) setIsLoading(true);
       fetchEvents().finally(() => {
         setIsLoading(false);
         setHasLoaded(true);
       });
-      if (token) {
+      if (token)
         getPendingRating(token)
-          // NestJS `null` döndüren bir handler'da boş gövde + content-type'sız bir yanıt
-          // gönderiyor (Content-Length: 0), bu yüzden apiClient onu `undefined` olarak
-          // ayrıştırıyor — state'i her zaman gerçek `null` olacak şekilde normalize ediyoruz.
           .then((result) => setPendingRating(result ?? null))
           .catch(() => {});
-      }
     }, [fetchEvents, hasLoaded, token]),
   );
 
@@ -248,39 +273,18 @@ export default function EventListScreen({ navigation }: Props) {
     await fetchEvents();
     setIsRefreshing(false);
   }
-
-  function toggleSaved(eventId: string) {
-    setSavedEventIds((current) => {
-      const next = new Set(current);
-      if (next.has(eventId)) {
-        next.delete(eventId);
-      } else {
-        next.add(eventId);
-      }
-      return next;
-    });
-  }
-
-  const isTrialEligible = !!user && !user.isPremium && user.premiumTrialEndsAt === null;
-
   async function handleSubmitRating(score: number) {
     if (!token || !pendingRating) return;
     setIsRatingSubmitting(true);
     try {
       await submitRating(pendingRating.id, score, token);
       setPendingRating(null);
-      if (isTrialEligible) {
+      if (user && !user.isPremium && user.premiumTrialEndsAt === null)
         setShowTrialOffer(true);
-      }
     } finally {
       setIsRatingSubmitting(false);
     }
   }
-
-  function handleDismissRating() {
-    setPendingRating(null);
-  }
-
   async function handleAcceptTrial() {
     if (!token) return;
     setIsTrialSubmitting(true);
@@ -293,46 +297,82 @@ export default function EventListScreen({ navigation }: Props) {
     }
   }
 
-  function handleDismissTrialOffer() {
-    setShowTrialOffer(false);
-    setTrialAccepted(false);
-  }
+  const query = search.trim().toLocaleLowerCase("tr-TR");
+  const filtering = selectedCategory !== null || query.length > 0;
+  const filtered = events.filter(
+    (event) =>
+      (!selectedCategory || event.category === selectedCategory) &&
+      (!query ||
+        (event.title + " " + event.category + " " + event.locationLabel)
+          .toLocaleLowerCase("tr-TR")
+          .includes(query)),
+  );
+  const nearby = [...events]
+    .filter((event) => event.distanceKm != null)
+    .sort((a, b) => a.distanceKm! - b.distanceKm!)
+    .slice(0, 3);
+  const interests = events
+    .filter((event) => user?.interests.includes(event.category))
+    .slice(0, 3);
+  const openEvent = (event: Event) =>
+    navigation.navigate("EventDetail", { eventId: event.id });
+  const resetFilters = () => {
+    setSelectedCategory(null);
+    setSearch("");
+  };
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+  const header = (
+    <View>
+      <View style={styles.intro}>
+        <Text style={styles.eyebrow}>BİRAZ DIŞARI, BİRAZ BİRLİKTE.</Text>
+        <Text
+          testID="discover-heading"
+          accessibilityRole="header"
+          style={styles.heading}
+        >
+          İyi bir plan,{"\n"}iyi bir{" "}
+          <Text style={styles.headingAccent}>başlangıç.</Text>
+        </Text>
+        <Text style={styles.subtitle}>
+          Yakınında bir etkinlik, tanışacak yeni insanlar.
+        </Text>
       </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={[typography.bodyMd, styles.error]}>{error}</Text>
+      <View style={styles.searchContainer}>
+        <MaterialIcons name="search" size={22} color={colors.textSecondary} />
+        <TextInput
+          testID="discover-search"
+          accessibilityLabel="Etkinlik, kategori veya yer ara"
+          style={styles.searchInput}
+          placeholder="Bugün ne yapmak istersin?"
+          placeholderTextColor={colors.textMuted}
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
+          autoCorrect={false}
+        />
+        {search.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Aramayı temizle"
+            onPress={() => setSearch("")}
+            style={styles.clearButton}
+          >
+            <MaterialIcons
+              name="close"
+              size={19}
+              color={colors.textSecondary}
+            />
+          </Pressable>
+        ) : null}
       </View>
-    );
-  }
-
-  const filteredEvents = selectedCategory ? events.filter((event) => event.category === selectedCategory) : events;
-  const featuredEvents = events.slice(0, FEATURED_COUNT);
-  const nearbyEvents = [...events]
-    .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
-    .slice(0, NEARBY_COUNT);
-  const interestEvents = user
-    ? events.filter((event) => user.interests.includes(event.category)).slice(0, INTEREST_COUNT)
-    : [];
-
-  const listHeader = (
-    <View style={styles.listHeader}>
-      <View style={styles.locationRow}>
-        <MaterialIcons name="location-on" size={16} color={colors.textMuted} />
-        <Text style={styles.locationLabel}>Kadıköy/Bostancı</Text>
-      </View>
-      <Text style={styles.heading}>Yakınındaki Aktiviteleri Keşfet</Text>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categories}
+        keyboardShouldPersistTaps="handled"
+      >
         <CategoryPill
+          testID="category-all"
           label="Tümü"
           emoji={ALL_CATEGORIES_EMOJI}
           selected={selectedCategory === null}
@@ -341,488 +381,502 @@ export default function EventListScreen({ navigation }: Props) {
         {EVENT_CATEGORIES.map((category) => (
           <CategoryPill
             key={category}
+            testID={"category-" + category}
             label={category}
-            emoji={CATEGORY_EMOJI[category] ?? ''}
+            emoji={CATEGORY_EMOJI[category] ?? ""}
             selected={selectedCategory === category}
             onPress={() => setSelectedCategory(category)}
           />
         ))}
       </ScrollView>
-
-      {featuredEvents.length > 0 ? (
+      {error ? (
+        <View style={styles.feedback}>
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
+          <Button
+            title="Tekrar dene"
+            onPress={handleRefresh}
+            loading={isRefreshing}
+            variant="outline"
+          />
+        </View>
+      ) : null}
+      {isLoading ? (
+        <View style={styles.feedback}>
+          <ActivityIndicator color={colors.primary} />
+          <Text style={styles.meta}>Yakınındaki planlar geliyor…</Text>
+        </View>
+      ) : null}
+      {!filtering && events.length > 0 ? (
         <>
-          <SectionDivider />
-          <View style={styles.section}>
-            <SectionHeader title="Öne Çıkanlar" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
-              {featuredEvents.map((event, index) => (
-                <FeaturedEventCard
+          <SectionHeader title="Buluşma noktası" caption="Yeni planlar" />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={cardWidth + 14}
+            decelerationRate="fast"
+            contentContainerStyle={styles.featuredRail}
+          >
+            {events.slice(0, 5).map((event, index) => (
+              <FeaturedCard
+                key={event.id}
+                event={event}
+                index={index}
+                width={cardWidth}
+                onPress={() => openEvent(event)}
+              />
+            ))}
+          </ScrollView>
+          <Pressable
+            testID="discover-map-banner"
+            accessibilityRole="button"
+            onPress={() => navigation.navigate("MapExplore")}
+            style={({ pressed }) => [
+              styles.mapBanner,
+              pressed && styles.pressed,
+            ]}
+          >
+            <View style={styles.mapIcon}>
+              <MaterialIcons
+                name="near-me"
+                size={25}
+                color={colors.textPrimary}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.mapTitle}>Güzel planlar çok yakın.</Text>
+              <Text style={styles.meta}>Haritada etrafına bir bak.</Text>
+            </View>
+            <MaterialIcons
+              name="arrow-forward"
+              size={21}
+              color={colors.textPrimary}
+            />
+          </Pressable>
+          {interests.length > 0 ? (
+            <View style={styles.section}>
+              <SectionHeader
+                title="Tam senlik"
+                caption="İlgi alanlarına göre"
+              />
+              {interests.map((event) => (
+                <EventRow
                   key={event.id}
                   event={event}
-                  isSaved={savedEventIds.has(event.id)}
-                  testID={`featured-event-card-${index}`}
-                  onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
-                  onToggleSave={() => toggleSaved(event.id)}
+                  onPress={() => openEvent(event)}
                 />
               ))}
-            </ScrollView>
-          </View>
-        </>
-      ) : null}
-
-      {nearbyEvents.length > 0 ? (
-        <>
-          <SectionDivider />
-          <View style={styles.section}>
-            <SectionHeader title="Yakınımdakiler" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nearbyRow}>
-              {nearbyEvents.map((event) => (
-                <NearbyEventCard
+            </View>
+          ) : null}
+          {nearby.length > 0 ? (
+            <View style={styles.section}>
+              <SectionHeader title="Hemen yakınında" caption="Mesafeye göre" />
+              {nearby.map((event) => (
+                <EventRow
                   key={event.id}
                   event={event}
-                  onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
+                  testID={"nearby-event-" + event.id}
+                  onPress={() => openEvent(event)}
                 />
               ))}
-            </ScrollView>
-          </View>
+            </View>
+          ) : null}
         </>
       ) : null}
-
-      {interestEvents.length > 0 ? (
-        <>
-          <SectionDivider />
-          <View style={styles.section}>
-            <SectionHeader title="Senin İçin" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nearbyRow}>
-              {interestEvents.map((event) => (
-                <NearbyEventCard
-                  key={event.id}
-                  event={event}
-                  onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        </>
+      {!isLoading ? (
+        <SectionHeader
+          title={filtering ? "Bulduğumuz planlar" : "Tüm etkinlikler"}
+          caption={filtered.length + " etkinlik"}
+        />
       ) : null}
-
-      <SectionDivider />
-      <Text style={styles.sectionTitle}>Tüm Etkinlikler</Text>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      {events.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          {listHeader}
-          <EmptyState title="Yakın çevrende henüz etkinlik yok" />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.topBar}>
+        <View style={styles.wordmark}>
+          <Text style={styles.brand}>katıl</Text>
+          <View style={styles.brandDot} />
         </View>
-      ) : (
-        <FlatList
-          data={filteredEvents}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.listContent, { paddingBottom: tabBarClearance }]}
-          ListHeaderComponent={listHeader}
-          ListEmptyComponent={<EmptyState title="Bu kategoride etkinlik yok" subtitle="Farklı bir kategori dene" />}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
-          renderItem={({ item }) => {
-            const isFillingFast = isEventFillingFast(item);
-            const categoryIcon = CATEGORY_ICONS[item.category] ?? DEFAULT_CATEGORY_ICON;
-
-            return (
-              <Pressable
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPress={() => navigation.navigate('EventDetail', { eventId: item.id })}
-              >
-                <View style={styles.imagePlaceholder}>
-                  <MaterialIcons name={categoryIcon} size={40} color={colors.primary} />
-                  {isFillingFast ? (
-                    <View style={styles.liveBadge}>
-                      <View style={styles.liveDot} />
-                      <Text style={styles.liveBadgeText}>Dolmak Üzere</Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.cardBody}>
-                  <View style={styles.cardTitleRow}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    {item.capacity != null ? (
-                      <View style={styles.spotsBadge}>
-                        <MaterialIcons name="group" size={14} color={colors.primary} />
-                        <Text style={styles.spotsBadgeText}>
-                          {item.participantCount}/{item.capacity}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <View style={styles.metaRow}>
-                    <MaterialIcons name="schedule" size={16} color={colors.textSecondary} />
-                    <Text style={styles.metaText}>{formatEventWhen(item.startsAt)}</Text>
-                  </View>
-                  <View style={styles.metaRow}>
-                    <MaterialIcons name="location-on" size={16} color={colors.textSecondary} />
-                    <Text style={styles.metaText} numberOfLines={1}>
-                      {item.locationLabel}
-                    </Text>
-                  </View>
-                </View>
-
-                <Pressable
-                  style={({ pressed }) => [styles.joinButton, pressed && styles.joinButtonPressed]}
-                  onPress={() => navigation.navigate('EventDetail', { eventId: item.id })}
-                >
-                  <Text style={styles.joinButtonText}>Katıl</Text>
-                </Pressable>
-              </Pressable>
-            );
-          }}
-        />
-      )}
-
-      <Pressable
-        testID="create-event-fab"
-        style={({ pressed }) => [styles.fab, { bottom: fabBottom }, pressed && styles.fabPressed]}
-        onPress={() => navigation.navigate('CreateEvent')}
-      >
-        <MaterialIcons name="add" size={28} color={colors.onPrimary} />
-      </Pressable>
-
+        <View style={styles.topActions}>
+          <Pressable
+            testID="map-explore-link"
+            accessibilityRole="button"
+            accessibilityLabel="Yakınındaki etkinlikleri haritada keşfet"
+            onPress={() => navigation.navigate("MapExplore")}
+            style={styles.locationButton}
+          >
+            <MaterialIcons name="near-me" size={15} color={colors.primary} />
+            <Text style={styles.locationText}>Yakınında</Text>
+          </Pressable>
+          <Pressable
+            testID="create-event-fab"
+            accessibilityRole="button"
+            accessibilityLabel="Etkinlik oluştur"
+            onPress={() => navigation.navigate("CreateEvent")}
+            style={({ pressed }) => [
+              styles.createButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <MaterialIcons name="add" size={24} color={colors.onPrimary} />
+          </Pressable>
+        </View>
+      </View>
+      <FlatList
+        data={isLoading ? [] : filtered}
+        keyExtractor={(event) => event.id}
+        contentContainerStyle={{ paddingBottom: tabClearance + 76 }}
+        ListHeaderComponent={header}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          !isLoading && !error ? (
+            <View style={styles.empty}>
+              <EmptyState
+                title={
+                  filtering
+                    ? "Bu planda henüz kimse yok."
+                    : "İlk plan senden olsun."
+                }
+                subtitle={
+                  filtering
+                    ? "Başka bir kategori veya arama deneyebilirsin."
+                    : "Bir etkinlik oluştur, birlikte yapacak insanları bul."
+                }
+              />
+              <Button
+                title={filtering ? "Filtreleri temizle" : "Etkinlik oluştur"}
+                variant="outline"
+                onPress={() =>
+                  filtering
+                    ? resetFilters()
+                    : navigation.navigate("CreateEvent")
+                }
+              />
+            </View>
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        renderItem={({ item, index }) => (
+          <EventRow
+            event={item}
+            testID={`event-list-row-${index}`}
+            onPress={() => openEvent(item)}
+          />
+        )}
+      />
       <RatingModal
         visible={pendingRating !== null}
-        eventTitle={pendingRating?.event.title ?? ''}
+        eventTitle={pendingRating?.event.title ?? ""}
         isSubmitting={isRatingSubmitting}
         onSubmit={handleSubmitRating}
-        onDismiss={handleDismissRating}
+        onDismiss={() => setPendingRating(null)}
       />
       <TrialOfferModal
         visible={showTrialOffer}
         hasAccepted={trialAccepted}
         isSubmitting={isTrialSubmitting}
         onAccept={handleAcceptTrial}
-        onDismiss={handleDismissTrialOffer}
+        onDismiss={() => {
+          setShowTrialOffer(false);
+          setTrialAccepted(false);
+        }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  container: { flex: 1, backgroundColor: colors.background },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 14,
   },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
+  wordmark: { flexDirection: "row", alignItems: "baseline", gap: 3 },
+  topActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  createButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  error: {
-    color: colors.error,
+  brand: {
+    fontFamily: "DMSans_800ExtraBold",
+    fontSize: 32,
+    letterSpacing: -1.8,
+    color: colors.textPrimary,
   },
-  brandTitle: {
-    fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 20,
-    color: colors.primary,
+  brandDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
   },
-  listContent: {
-    padding: spacing.md,
-    gap: spacing.md,
-    flexGrow: 1,
+  locationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  emptyContainer: {
-    flex: 1,
-    padding: spacing.md,
+  locationText: {
+    fontFamily: "DMSans_500Medium",
+    fontSize: 12,
+    color: colors.textPrimary,
   },
-  listHeader: {
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationLabel: {
-    ...typography.labelCaps,
-    color: colors.textMuted,
+  intro: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 18 },
+  eyebrow: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 10,
+    letterSpacing: 1.8,
+    color: colors.textSecondary,
+    marginBottom: 12,
   },
   heading: {
-    ...typography.headlineMd,
+    fontFamily: "DMSans_700Bold",
+    fontSize: 33,
+    lineHeight: 37,
+    letterSpacing: -1.3,
     color: colors.textPrimary,
   },
-  chipRow: {
-    gap: spacing.md,
-    paddingVertical: 2,
+  headingAccent: { color: colors.primary },
+  subtitle: {
+    fontFamily: "DMSans_400Regular",
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    marginTop: 12,
   },
-  section: {
-    gap: spacing.xs,
+  searchContainer: {
+    marginHorizontal: 24,
+    minHeight: 54,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: 16,
   },
-  sectionDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
-    marginVertical: spacing.xs,
+  searchInput: {
+    flex: 1,
+    fontFamily: "DMSans_400Regular",
+    fontSize: 14,
+    color: colors.textPrimary,
+    paddingVertical: 15,
+  },
+  clearButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categories: {
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: 18,
+    gap: 8,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 6,
+    paddingBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 12,
   },
   sectionTitle: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 18,
-    lineHeight: 23,
+    fontFamily: "DMSans_700Bold",
+    fontSize: 21,
+    letterSpacing: -0.6,
     color: colors.textPrimary,
+    flexShrink: 1,
   },
-  sectionSeeAllRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sectionSeeAll: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 14,
+  sectionCaption: {
+    fontFamily: "DMSans_400Regular",
+    fontSize: 11,
     color: colors.textMuted,
   },
-  featuredRow: {
-    gap: spacing.md,
-    paddingVertical: 2,
-  },
+  featuredRail: { paddingHorizontal: 24, paddingBottom: 4, gap: 14 },
   featuredCard: {
-    width: 300,
-    borderRadius: radii.cardLarge,
+    borderRadius: 22,
+    overflow: "hidden",
     backgroundColor: colors.surface,
-    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  cardPressed: {
-    opacity: 0.9,
-  },
-  featuredImage: {
-    height: 200,
-    backgroundColor: colors.surfaceVariant,
-    alignItems: 'center',
-    justifyContent: 'center',
+  featuredArtwork: { height: 166 },
+  featuredBody: { padding: 17, gap: 8 },
+  featuredTitle: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 23,
+    lineHeight: 28,
+    letterSpacing: -0.7,
+    color: colors.textPrimary,
   },
   dateBadge: {
-    position: 'absolute',
-    top: spacing.xs,
-    left: spacing.xs,
-    backgroundColor: colors.textPrimary,
-    borderRadius: radii.badge,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignItems: 'center',
+    position: "absolute",
+    left: 14,
+    top: 14,
+    minWidth: 48,
+    padding: 7,
+    borderRadius: 13,
+    alignItems: "center",
+    backgroundColor: colors.background,
   },
-  dateBadgeDay: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 18,
-    lineHeight: 20,
-    color: colors.onPrimary,
-  },
-  dateBadgeMonth: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 11,
-    color: colors.onPrimary,
-    opacity: 0.75,
-  },
-  overlayIconRow: {
-    position: 'absolute',
-    top: spacing.xs,
-    right: spacing.xs,
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  overlayIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featuredBody: {
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-    gap: 6,
-  },
-  featuredTitle: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 18,
-    lineHeight: 23,
+  dateDay: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 22,
+    lineHeight: 26,
     color: colors.textPrimary,
   },
-  featuredWhen: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 14,
-    color: colors.primary,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 2,
-  },
-  tag: {
-    backgroundColor: colors.surfaceContainer,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 3,
-    borderRadius: radii.tag,
-  },
-  tagText: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 12,
-    color: colors.textPrimary,
-  },
-  nearbyRow: {
-    gap: spacing.sm,
-    paddingVertical: 2,
-  },
-  nearbyCard: {
-    width: 300,
-    flexDirection: 'row',
-    gap: spacing.sm,
-    padding: spacing.xs,
-    borderRadius: radii.card,
-    backgroundColor: colors.surface,
-  },
-  nearbyImage: {
-    width: 85,
-    height: 85,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceVariant,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nearbyBody: {
-    flex: 1,
-    gap: 4,
-    justifyContent: 'center',
-  },
-  nearbyTitle: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 13,
-    lineHeight: 17,
-    color: colors.textPrimary,
-  },
-  card: {
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  imagePlaceholder: {
-    height: 128,
-    borderRadius: radii.card - 4,
-    backgroundColor: colors.surfaceVariant,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  liveBadge: {
-    position: 'absolute',
-    top: spacing.xs,
-    right: spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
-    borderRadius: radii.chip,
-  },
-  featuredLiveBadge: {
-    position: 'absolute',
-    bottom: spacing.xs,
-    right: spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
-    borderRadius: radii.chip,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primaryContainer,
-  },
-  liveBadgeText: {
-    ...typography.labelCaps,
-    color: colors.primary,
-  },
-  cardBody: {
-    gap: 4,
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  cardTitle: {
-    ...typography.headlineSm,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  spotsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.surfaceContainer,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    borderRadius: radii.chip,
-  },
-  spotsBadgeText: {
-    ...typography.labelCaps,
-    color: colors.primary,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
-    ...typography.bodyMd,
+  dateMonth: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 9,
+    letterSpacing: 0.6,
     color: colors.textSecondary,
   },
-  feedMetaText: {
-    fontFamily: 'DMSans_400Regular',
+  categoryBadge: {
+    position: "absolute",
+    top: 129,
+    left: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+  },
+  categoryBadgeText: {
+    fontFamily: "DMSans_600SemiBold",
+    fontSize: 10,
+    color: colors.textPrimary,
+  },
+  shareButton: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inline: { flexDirection: "row", alignItems: "center", gap: 5 },
+  cardFooter: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 12,
+    marginTop: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  organizerAvatar: {
+    width: 25,
+    height: 25,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceVariant,
+  },
+  avatarLetter: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 11,
+    color: colors.textPrimary,
+  },
+  organizerName: {
+    fontFamily: "DMSans_500Medium",
+    fontSize: 11,
+    color: colors.textSecondary,
+    maxWidth: 90,
+  },
+  spots: {
+    fontFamily: "DMSans_600SemiBold",
+    fontSize: 10,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  mapBanner: {
+    margin: 24,
+    padding: 16,
+    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EBEEE4",
+    borderRadius: 18,
+  },
+  mapIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DAE2CF",
+  },
+  mapTitle: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  section: { paddingBottom: 22 },
+  eventRow: {
+    marginHorizontal: 24,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    flexDirection: "row",
+    gap: 13,
+    alignItems: "center",
+  },
+  rowArtwork: { width: 78, height: 92, borderRadius: 14 },
+  rowBody: { flex: 1, gap: 5 },
+  rowDate: {
+    fontFamily: "DMSans_600SemiBold",
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.primary,
+  },
+  rowTitle: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: -0.3,
+    color: colors.textPrimary,
+  },
+  meta: {
+    fontFamily: "DMSans_400Regular",
     fontSize: 12,
+    lineHeight: 17,
+    color: colors.textSecondary,
+  },
+  distance: {
+    fontFamily: "DMSans_500Medium",
+    fontSize: 10,
     color: colors.textMuted,
   },
-  joinButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.button,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  joinButtonPressed: {
-    opacity: 0.85,
-  },
-  joinButtonText: {
-    ...typography.bodyMd,
-    fontWeight: '700',
-    color: colors.onPrimary,
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0px 6px 16px rgba(176,47,0,0.35)',
-  },
-  fabPressed: {
-    opacity: 0.9,
-  },
+  pressed: { opacity: 0.75 },
+  feedback: { padding: 24, gap: 14, alignItems: "center" },
+  error: { ...typography.bodyMd, color: colors.error, textAlign: "center" },
+  empty: { padding: 24, gap: 18 },
 });

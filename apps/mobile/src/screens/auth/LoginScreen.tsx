@@ -1,163 +1,118 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../navigation/types';
-import { requestOtp } from '../../api/auth';
-import { ApiError } from '../../api/client';
-import Button from '../../components/Button';
-import FadeSlideIn from '../../components/FadeSlideIn';
-import { colors, motion, radii, spacing, typography } from '../../theme';
+import { useState } from "react";
+import { Keyboard, Pressable, Text, TextInput, View } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { AuthStackParamList } from "../../navigation/types";
+import { login } from "../../api/auth";
+import { ApiError } from "../../api/client";
+import { useAuth } from "../../auth/AuthContext";
+import Button from "../../components/Button";
+import { colors } from "../../theme";
+import AuthLayout, { authStyles as styles } from "./AuthLayout";
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
-
-function detectChannel(value: string): 'email' | 'phone' {
-  return value.includes('@') ? 'email' : 'phone';
-}
-
+type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 export default function LoginScreen({ navigation }: Props) {
-  const [target, setTarget] = useState('');
+  const { login: setSession } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   async function handleSubmit() {
+    if (isSubmitting) return;
+    Keyboard.dismiss();
     setError(null);
-    const trimmed = target.trim();
-    if (!trimmed) {
-      setError('E-posta veya telefon numaranı gir');
+    if (!email.trim() || !password) {
+      setError("E-posta ve şifreni gir");
       return;
     }
-
-    const channel = detectChannel(trimmed);
     setIsSubmitting(true);
     try {
-      await requestOtp({ channel, target: trimmed });
-      navigation.navigate('OtpVerify', { channel, target: trimmed });
+      const result = await login({ email: email.trim(), password });
+      await setSession(result);
+      // AuthProvider state change automatically switches RootNavigator to the app stack.
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Bir şeyler ters gitti');
+      setError(err instanceof ApiError ? err.message : "Bir şeyler ters gitti");
     } finally {
       setIsSubmitting(false);
     }
   }
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <AuthLayout
+      artwork
+      eyebrow="YENİDEN MERHABA"
+      title={"Güzel planlar,\nseni bekliyor."}
+      subtitle="Hesabına giriş yap, kaldığın yerden birlikte devam edelim."
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-        keyboardShouldPersistTaps="handled"
-      >
-        <FadeSlideIn delay={0} style={styles.fullWidth}>
-          <Text style={styles.title}>Katıl</Text>
-          <Text style={styles.loginTitle}>Giriş Yap</Text>
-          <Text style={styles.subtitle}>E-posta veya telefon ile giriş yap</Text>
-        </FadeSlideIn>
-
-        <FadeSlideIn delay={motion.stagger.step} style={styles.fullWidth}>
+      <View style={styles.form}>
+        <View style={styles.field}>
+          <Text style={styles.label}>E-posta</Text>
           <TextInput
-            testID="login-target-input"
+            testID="login-email-input"
+            accessibilityLabel="E-posta"
             style={styles.input}
-            placeholder="ornek@mail.com veya +90..."
+            placeholder="ornek@mail.com"
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
-            value={target}
-            onChangeText={setTarget}
+            textContentType="emailAddress"
+            value={email}
+            onChangeText={setEmail}
+            editable={!isSubmitting}
           />
-        </FadeSlideIn>
-
+        </View>
+        <View style={styles.field}>
+          <Text style={styles.label}>Şifre</Text>
+          <TextInput
+            testID="login-password-input"
+            accessibilityLabel="Şifre"
+            style={styles.input}
+            placeholder="Şifreni gir"
+            placeholderTextColor={colors.textMuted}
+            secureTextEntry
+            textContentType="password"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="go"
+            value={password}
+            onChangeText={setPassword}
+            onSubmitEditing={handleSubmit}
+            editable={!isSubmitting}
+          />
+        </View>
         {error ? (
-          <FadeSlideIn delay={0} distance={4} style={styles.fullWidth}>
-            <Text style={styles.error}>{error}</Text>
-          </FadeSlideIn>
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
         ) : null}
-
-        <FadeSlideIn delay={motion.stagger.step * 2} style={styles.fullWidth}>
-          <Button
-            testID="login-submit-button"
-            title={isSubmitting ? 'Gönderiliyor...' : 'Kod Gönder'}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-            style={styles.submitButton}
-          />
-        </FadeSlideIn>
-
-        <FadeSlideIn delay={motion.stagger.step * 3}>
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Hesabın yok mu? </Text>
-            <Text testID="login-register-link" style={styles.link} onPress={() => navigation.navigate('Register')}>
-              Kayıt ol
-            </Text>
-          </View>
-        </FadeSlideIn>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <Button
+          testID="login-submit-button"
+          title="Giriş yap"
+          icon="arrow-forward"
+          onPress={handleSubmit}
+          loading={isSubmitting}
+        />
+        <Pressable
+          testID="login-forgot-password-link"
+          accessibilityRole="button"
+          style={styles.linkButton}
+          disabled={isSubmitting}
+          onPress={() => navigation.navigate("ForgotPassword")}
+        >
+          <Text style={styles.link}>Şifremi unuttum</Text>
+        </Pressable>
+      </View>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Henüz tanışmadık mı?</Text>
+        <Pressable
+          testID="login-register-link"
+          accessibilityRole="button"
+          style={styles.linkButton}
+          disabled={isSubmitting}
+          onPress={() => navigation.navigate("Register")}
+        >
+          <Text style={styles.link}>Aramıza katıl</Text>
+        </Pressable>
+      </View>
+    </AuthLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flexGrow: 1,
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingTop: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  fullWidth: {
-    width: '100%',
-  },
-  title: {
-    ...typography.displayMobile,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-  },
-  loginTitle: {
-    ...typography.headlineMd,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    ...typography.bodyMd,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
-    ...typography.bodyLg,
-  },
-  submitButton: {
-    width: '100%',
-    marginTop: spacing.xs,
-  },
-  error: {
-    color: colors.error,
-    ...typography.bodyMd,
-  },
-  footer: {
-    flexDirection: 'row',
-    marginTop: spacing.md,
-  },
-  footerText: {
-    ...typography.bodyMd,
-    color: colors.textSecondary,
-  },
-  link: {
-    ...typography.bodyMd,
-    color: colors.primaryDark,
-    fontWeight: '700',
-  },
-});

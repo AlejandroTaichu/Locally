@@ -9,24 +9,18 @@ appId: com.join.app
     id: "profile-logout-confirm-button"
 - extendedWaitUntil:
     visible:
-      id: "login-target-input"
+      id: "login-email-input"
     timeout: 10000
 - tapOn:
-    id: "login-target-input"
+    id: "login-email-input"
 - inputText: "${output.email}"
+- tapOn:
+    id: "login-password-input"
+- inputText: "${output.password}"
+- pressKey: Enter
 - assertVisible:
     id: "login-submit-button"
 - tapOn:
     id: "login-submit-button"
-- extendedWaitUntil:
-    visible:
-      id: "otp-code-input"
-    timeout: 10000
-- runScript: scripts/fetch-otp.js
-- tapOn:
-    id: "otp-code-input"
-- inputText: "${output.otpCode}"
-- pressKey: Enter
-- tapOn:
-    id: "otp-verify-button"
-- assertVisible: "Yakınındaki Aktiviteleri Keşfet"
+- assertVisible:
+    id: "discover-heading"

@@ -12,7 +12,7 @@ import { listMyEvents } from '../../api/events';
 import type { MyEventEntry } from '../../api/events';
 import type { ParticipationStatus } from '../../api/participations';
 import EmptyState from '../../components/EmptyState';
-import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../../constants/eventCategories';
+import EventArtwork from '../../components/EventArtwork';
 import { formatEventWhen } from '../../utils/events';
 import { colors, radii, spacing, typography } from '../../theme';
 import { TAB_BAR_HEIGHT } from '../../navigation/PillTabBar';
@@ -75,21 +75,19 @@ export default function MyEventsScreen({ navigation }: Props) {
         data={entries}
         keyExtractor={(entry) => entry.event.id}
         contentContainerStyle={[styles.listContent, { paddingBottom: tabBarClearance }]}
+        ListHeaderComponent={<View style={{ gap: 8, paddingVertical: 16 }}><Text style={{ ...typography.displayMobile, color: colors.textPrimary, letterSpacing: -1 }}>Takviminde güzel şeyler var.</Text><Text style={styles.metaText}>Birlikte yapacağın planlar burada.</Text></View>}
         ListEmptyComponent={
           <EmptyState title="Henüz bir etkinliğe katılmadın" subtitle="Katıldığın veya oluşturduğun etkinlikler burada görünür" />
         }
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
         renderItem={({ item, index }) => {
-          const categoryIcon = CATEGORY_ICONS[item.event.category] ?? DEFAULT_CATEGORY_ICON;
           return (
             <Pressable
               testID={`my-event-card-${index}`}
               style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
               onPress={() => navigation.navigate('EventDetail', { eventId: item.event.id })}
             >
-              <View style={styles.imagePlaceholder}>
-                <MaterialIcons name={categoryIcon} size={40} color={colors.primary} />
-              </View>
+              <EventArtwork category={item.event.category} style={styles.imagePlaceholder} />
               <View style={styles.cardBody}>
                 <View style={styles.cardTitleRow}>
                   <Text style={styles.cardTitle} numberOfLines={1}>
@@ -132,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   listContent: {
-    padding: spacing.md,
+    padding: spacing.lg,
     gap: spacing.md,
     flexGrow: 1,
   },
@@ -146,8 +144,8 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   imagePlaceholder: {
-    height: 100,
-    borderRadius: radii.card - 4,
+    height: 160,
+    borderRadius: 20,
     backgroundColor: colors.surfaceVariant,
     alignItems: 'center',
     justifyContent: 'center',

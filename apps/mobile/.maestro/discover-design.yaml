@@ -1,0 +1,55 @@
+# Run with an existing signed-in test account and at least one nearby event.
+# Read-only: exercises discovery and navigation without creating records.
+appId: com.join.app
+---
+- launchApp:
+    permissions:
+      location: inuse
+- extendedWaitUntil:
+    visible:
+      id: "discover-heading"
+    timeout: 30000
+- takeScreenshot: discover-premium
+- tapOn:
+    id: "discover-search"
+- waitForAnimationToEnd
+- tapOn:
+    id: "discover-search"
+- inputText: "zzzxxyy-no-event"
+- hideKeyboard
+- assertVisible: "0 etkinlik"
+- assertVisible: "Bu planda henüz kimse yok."
+- tapOn: "Filtreleri temizle"
+- assertVisible:
+    id: "featured-event-card-0"
+- tapOn:
+    id: "category-Koşu"
+- assertVisible: "Bulduğumuz planlar"
+- assertNotVisible: "Buluşma noktası"
+- tapOn:
+    id: "category-all"
+- tapOn:
+    id: "featured-event-card-0"
+- extendedWaitUntil:
+    visible:
+      id: "event-back-button"
+    timeout: 10000
+- takeScreenshot: detail-premium
+- tapOn:
+    id: "event-back-button"
+- tapOn:
+    id: "tab-etkinliklerim"
+- assertVisible: "Takviminde güzel şeyler var."
+- takeScreenshot: my-events-premium
+- tapOn:
+    id: "tab-profil"
+- assertVisible:
+    id: "profile-edit-pill"
+- takeScreenshot: profile-premium
+- tapOn:
+    id: "tab-kesfet"
+- tapOn:
+    id: "create-event-fab"
+- assertVisible:
+    id: "event-title-input"
+- takeScreenshot: create-event-premium

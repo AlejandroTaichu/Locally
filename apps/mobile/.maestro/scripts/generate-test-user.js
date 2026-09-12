@@ -4,3 +4,4 @@ const now = Date.now();
 output.displayName = 'Maestro Test';
 output.email = `maestro-${now}@example.com`;
 output.phone = `+9055${String(now).slice(-7)}`;
+output.password = 'MaestroTest1234';

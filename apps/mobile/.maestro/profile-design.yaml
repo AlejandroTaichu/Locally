@@ -1,0 +1,62 @@
+# Existing signed-in test session. Does not save, subscribe, log out or delete.
+appId: com.join.app
+---
+- launchApp:
+    permissions:
+      location: inuse
+- extendedWaitUntil:
+    visible:
+      id: "tab-profil"
+    timeout: 60000
+- tapOn:
+    id: "tab-profil"
+- assertVisible:
+    id: "profile-heading"
+- takeScreenshot: profile-premium-top
+- tapOn:
+    id: "profile-edit-pill"
+- assertVisible:
+    id: "profile-edit-displayName"
+- tapOn:
+    id: "edit-personal-info-back"
+- tapOn:
+    id: "profile-interests-edit"
+- assertVisible:
+    id: "interests-save-button"
+- tapOn: "Tabs"
+- scrollUntilVisible:
+    element:
+      id: "profile-notifications-row"
+    direction: DOWN
+- tapOn:
+    id: "profile-notifications-row"
+- assertVisible:
+    id: "notifications-event-reminders-toggle"
+- tapOn: "Tabs"
+- scrollUntilVisible:
+    element:
+      id: "profile-logout-row"
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: profile-premium-settings
+- tapOn:
+    id: "profile-logout-row"
+- assertVisible:
+    id: "profile-logout-confirm-button"
+- tapOn:
+    id: "profile-logout-cancel-button"
+- scrollUntilVisible:
+    element:
+      id: "profile-delete-account-row"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "profile-delete-account-row"
+- assertVisible:
+    id: "profile-delete-account-confirm-button"
+- tapOn:
+    id: "profile-delete-account-cancel-button"
+- scrollUntilVisible:
+    element:
+      id: "profile-interests-edit"
+    direction: UP
