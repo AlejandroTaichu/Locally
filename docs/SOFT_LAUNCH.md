@@ -24,9 +24,10 @@ OTP_FROM_EMAIL=Katıl <giris@your-verified-domain.example>
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_FROM_NUMBER=...
+SENTRY_DSN=...
 ```
 
-`TWILIO_MESSAGING_SERVICE_SID` may replace `TWILIO_FROM_NUMBER`. Production startup intentionally fails if OTP delivery is left in console mode. Resend must have a verified sender domain and Twilio must be allowed to send to the target country.
+`TWILIO_MESSAGING_SERVICE_SID` may replace `TWILIO_FROM_NUMBER`. Production startup intentionally fails if OTP delivery is left in console mode. Resend must have a verified sender domain and Twilio must be allowed to send to the target country. `SENTRY_DSN` is optional but strongly recommended before launch — without it, unhandled errors are only visible in server logs.
 
 ## 3. EAS environments
 
@@ -37,7 +38,10 @@ EXPO_PUBLIC_API_URL=https://api.your-domain.example
 EXPO_PUBLIC_PRIVACY_POLICY_URL=https://your-domain.example/gizlilik
 EXPO_PUBLIC_TERMS_URL=https://your-domain.example/kullanim-kosullari
 EXPO_PUBLIC_ACCOUNT_DELETION_URL=https://your-domain.example/hesap-silme
+EXPO_PUBLIC_SENTRY_DSN=...
 ```
+
+`EXPO_PUBLIC_SENTRY_DSN` is optional — without it, crash reporting stays disabled and the in-app error boundary just shows a generic fallback screen with nothing sent anywhere.
 
 The committed `eas.json` creates an internal Android APK with `preview` and store-ready artifacts with `production`. Production build numbers are managed remotely and auto-incremented.
 
