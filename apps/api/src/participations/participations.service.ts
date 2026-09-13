@@ -8,6 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { Prisma } from '../generated/prisma/client.js';
 import type { EventGenderRestriction } from '../generated/prisma/client.js';
 import type { DecideParticipationDto, SubmitRatingDto } from './participations.schemas.js';
 
@@ -33,27 +34,42 @@ export class ParticipationsService {
     if (!event) {
       throw new NotFoundException('Event not found');
     }
+    if (event.organizerId === userId) {
+      throw new ForbiddenException('Kendi etkinliğine katılım isteği gönderemezsin');
+    }
+    if (new Date(event.startsAt).getTime() <= Date.now()) {
+      throw new ConflictException('Başlamış veya sona ermiş bir etkinliğe katılamazsın');
+    }
 
     const existing = await this.prisma.participation.findUnique({
       where: { eventId_userId: { eventId, userId } },
     });
-    if (existing) {
+    if (existing && existing.status !== 'rejected') {
       throw new ConflictException('Already requested or joined this event');
     }
 
     await this.assertMeetsRestrictions(event, userId);
     await this.assertMonthlyJoinLimitAvailable(userId);
 
+    // Reddedilmiş eski istek varsa upsert onu yeniden 'pending'/'joined' durumuna taşır —
+    // eventId_userId unique kısıtı yüzünden reddedilen kullanıcı aksi halde bir daha hiç isteyemezdi.
     if (event.joinType === 'instant') {
-      await this.assertCapacityAvailable(eventId, event.capacity);
-      return this.prisma.participation.create({
-        data: { eventId, userId, status: 'joined' },
-        ...participationWithUser,
+      return this.prisma.$transaction(async (tx) => {
+        await this.lockEventForCapacityCheck(tx, eventId);
+        await this.assertCapacityAvailable(tx, eventId, event.capacity);
+        return tx.participation.upsert({
+          where: { eventId_userId: { eventId, userId } },
+          create: { eventId, userId, status: 'joined' },
+          update: { status: 'joined', requestedAt: new Date(), decidedAt: null },
+          ...participationWithUser,
+        });
       });
     }
 
-    const participation = await this.prisma.participation.create({
-      data: { eventId, userId, status: 'pending' },
+    const participation = await this.prisma.participation.upsert({
+      where: { eventId_userId: { eventId, userId } },
+      create: { eventId, userId, status: 'pending' },
+      update: { status: 'pending', requestedAt: new Date(), decidedAt: null },
       ...participationWithUser,
     });
 
@@ -84,18 +100,29 @@ export class ParticipationsService {
     if (participation.event.organizerId !== organizerId) {
       throw new ForbiddenException('Only the organizer can decide on this request');
     }
+    if (participation.userId === organizerId) {
+      throw new ForbiddenException('Organizer cannot decide on their own participation');
+    }
     if (participation.status !== 'pending') {
       throw new ConflictException('Participation already decided');
     }
 
-    if (dto.status === 'approved') {
-      await this.assertCapacityAvailable(participation.eventId, participation.event.capacity);
+    if (dto.status === 'rejected') {
+      return this.prisma.participation.update({
+        where: { id: participationId },
+        data: { status: 'rejected', decidedAt: new Date() },
+        ...participationWithUser,
+      });
     }
 
-    return this.prisma.participation.update({
-      where: { id: participationId },
-      data: { status: dto.status, decidedAt: new Date() },
-      ...participationWithUser,
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockEventForCapacityCheck(tx, participation.eventId);
+      await this.assertCapacityAvailable(tx, participation.eventId, participation.event.capacity);
+      return tx.participation.update({
+        where: { id: participationId },
+        data: { status: 'approved', decidedAt: new Date() },
+        ...participationWithUser,
+      });
     });
   }
 
@@ -124,7 +151,10 @@ export class ParticipationsService {
     if (participation.userId !== userId) {
       throw new ForbiddenException('Only the participant can rate this event');
     }
-    if (participation.event.startsAt >= new Date()) {
+    if (!CONFIRMED_STATUSES.includes(participation.status as (typeof CONFIRMED_STATUSES)[number])) {
+      throw new ForbiddenException('Sadece onaylanmış bir katılımı puanlayabilirsin');
+    }
+    if (new Date(participation.event.startsAt).getTime() >= Date.now()) {
       throw new ConflictException('Event has not happened yet');
     }
     if (participation.rating) {
@@ -137,13 +167,22 @@ export class ParticipationsService {
   }
 
   private async assertMeetsRestrictions(
-    event: { genderRestriction: EventGenderRestriction; minAge: number; maxAge: number },
+    event: {
+      genderRestriction: EventGenderRestriction;
+      minAge: number;
+      maxAge: number;
+      premiumOnlyMatching: boolean;
+    },
     userId: string,
   ) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { age: true, gender: true },
+      select: { age: true, gender: true, isPremium: true },
     });
+
+    if (event.premiumOnlyMatching && !user.isPremium) {
+      throw new ForbiddenException('Bu etkinlik yalnızca premium katılımcılara açık');
+    }
 
     if (user.age === null || user.age < event.minAge || user.age > event.maxAge) {
       throw new ForbiddenException(`Bu etkinlik ${event.minAge}-${event.maxAge} yaş aralığına açık`);
@@ -177,11 +216,22 @@ export class ParticipationsService {
     }
   }
 
-  private async assertCapacityAvailable(eventId: string, capacity: number | null) {
+  // Event satırını kilitler; aynı etkinlik için eşzamanlı katılım/onay istekleri artık
+  // birbirini bekler ve kontenjan sayımı her zaman güncel/tutarlı veri üzerinden yapılır
+  // (önceki halinde count+create/update arasında yarış durumu vardı, kontenjan aşılabiliyordu).
+  private async lockEventForCapacityCheck(tx: Prisma.TransactionClient, eventId: string) {
+    await tx.$queryRaw`SELECT id FROM "Event" WHERE id = ${eventId} FOR UPDATE`;
+  }
+
+  private async assertCapacityAvailable(
+    tx: Prisma.TransactionClient,
+    eventId: string,
+    capacity: number | null,
+  ) {
     if (capacity === null) {
       return;
     }
-    const confirmedCount = await this.prisma.participation.count({
+    const confirmedCount = await tx.participation.count({
       where: { eventId, status: { in: [...CONFIRMED_STATUSES] } },
     });
     if (confirmedCount >= capacity) {

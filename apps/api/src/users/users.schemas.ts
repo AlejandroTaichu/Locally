@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 export const updateMeSchema = z.object({
   displayName: z.string().trim().min(2, 'Ad Soyad en az 2 karakter olmalı').max(80, 'Ad Soyad çok uzun').optional(),
-  isPremium: z.boolean().optional(),
   onboardingCompleted: z.literal(true).optional(),
   age: z.number().int().min(13, 'Yaş en az 13 olmalı').max(100, 'Geçersiz yaş').optional(),
   bio: z.string().trim().max(280, 'Bio çok uzun').optional(),

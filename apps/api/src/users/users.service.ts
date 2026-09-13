@@ -1,10 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { OtpChannel } from '../generated/prisma/client.js';
-import { generateOtpCode, otpExpiryDate } from '../auth/otp.util.js';
 import type { UpdateMeDto } from './users.schemas.js';
-import { OtpDeliveryService } from '../notifications/otp-delivery.service.js';
+import { OtpChallengeService } from '../auth/otp-challenge.service.js';
 
 const TARGET_TAKEN_MESSAGE: Record<OtpChannel, string> = {
   email: 'Bu e-posta adresi zaten kullanımda',
@@ -15,7 +14,7 @@ const TARGET_TAKEN_MESSAGE: Record<OtpChannel, string> = {
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly otpDelivery: OtpDeliveryService,
+    private readonly otpChallenge: OtpChallengeService,
   ) {}
 
   async getById(id: string) {
@@ -27,7 +26,11 @@ export class UsersService {
     // Gerçek abonelik faturalandırması yok (bkz. ADR 0002) — cron/job altyapısı kurmak yerine,
     // deneme süresi burada "tembel" (lazy) olarak, her okuma anında kontrol edilip sona
     // erdirilir. Bu proje genelinde tercih edilen altyapısız/pragmatik desen.
-    if (user.isPremium && user.premiumTrialEndsAt && user.premiumTrialEndsAt < new Date()) {
+    if (
+      user.isPremium &&
+      user.premiumTrialEndsAt &&
+      new Date(user.premiumTrialEndsAt).getTime() < Date.now()
+    ) {
       return this.prisma.user.update({ where: { id }, data: { isPremium: false } });
     }
 
@@ -55,7 +58,6 @@ export class UsersService {
         where: { id },
         data: {
           ...(dto.displayName !== undefined ? { displayName: dto.displayName } : {}),
-          ...(dto.isPremium !== undefined ? { isPremium: dto.isPremium } : {}),
           ...(dto.onboardingCompleted !== undefined ? { onboardingCompletedAt: new Date() } : {}),
           ...(dto.age !== undefined ? { age: dto.age } : {}),
           ...(dto.bio !== undefined ? { bio: dto.bio } : {}),
@@ -136,42 +138,27 @@ export class UsersService {
       throw new ConflictException(TARGET_TAKEN_MESSAGE[channel]);
     }
 
-    const code = generateOtpCode();
-    const otp = await this.prisma.otpCode.create({ data: { channel, target, code, expiresAt: otpExpiryDate() } });
-    try {
-      await this.otpDelivery.send(channel, target, code);
-    } catch (error) {
-      await this.prisma.otpCode.delete({ where: { id: otp.id } }).catch(() => undefined);
-      throw error;
-    }
+    await this.otpChallenge.issue(channel, target);
 
     return { ok: true };
   }
 
   private async verifyTargetChange(channel: OtpChannel, userId: string, target: string, code: string) {
-    const otp = await this.prisma.otpCode.findFirst({
-      where: { channel, target, consumedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!otp || otp.code !== code || otp.expiresAt < new Date()) {
-      throw new BadRequestException('Geçersiz veya süresi dolmuş kod');
-    }
+    const otp = await this.otpChallenge.validate(channel, target, code);
 
     const existing = await this.findUserByTarget(channel, target);
     if (existing && existing.id !== userId) {
       throw new ConflictException(TARGET_TAKEN_MESSAGE[channel]);
     }
 
-    await this.prisma.$transaction([
-      this.prisma.otpCode.update({ where: { id: otp.id }, data: { consumedAt: new Date() } }),
-      this.prisma.user.update({
-        where: { id: userId },
-        data:
-          channel === 'email'
-            ? { email: target, emailVerifiedAt: new Date() }
-            : { phone: target, phoneVerifiedAt: new Date() },
-      }),
-    ]);
+    await this.otpChallenge.consume(otp.id);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data:
+        channel === 'email'
+          ? { email: target, emailVerifiedAt: new Date() }
+          : { phone: target, phoneVerifiedAt: new Date() },
+    });
 
     return this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
   }
